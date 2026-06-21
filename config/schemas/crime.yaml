@@ -1,0 +1,7 @@
+entity: crime
+columns:
+  - { name: sal_code, type: string }
+  - { name: suburb, type: string }
+  - { name: postcode, type: string }
+  - { name: period, type: int }
+  - { name: offence_count_total, type: int }

@@ -1,0 +1,6 @@
+env: qa
+catalog: vic_suburbs_qa
+landing_schema: "00_landing"
+alerting:
+  freshness_hours: 192        # weekly cadence + slack
+  warn_pass_rate_threshold: 0.95

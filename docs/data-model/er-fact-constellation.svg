@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 1000" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+<rect width="1660" height="1000" fill="#FFFFFF"/>
+<defs><filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1A2B4A" flood-opacity="0.16"/></filter></defs>
+<text x="830.0" y="58" text-anchor="middle" font-size="30" font-weight="800" fill="#1A2B4A" letter-spacing="0.5">Data Model — Fact Constellation</text>
+<text x="830.0" y="88" text-anchor="middle" font-size="15" fill="#6B7B96">One fact per subject area · conformed dimensions shared across all facts</text>
+<g filter="url(#sh)">
+<rect x="1200" y="70" width="270" height="96" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M1201 100 v-18 a12 12 0 0 1 12 -12 h244 a12 12 0 0 1 12 12 v18 Z" fill="#3D6BBA"/>
+<text x="1216 " y="90" font-size="15" font-weight="700" fill="#FFFFFF">dim_lga  ·  SCD2</text>
+<text x="1216" y="120" font-size="12.5" fill="#33415C">lga_sk (PK) · lga_code</text>
+<text x="1216" y="139" font-size="12.5" fill="#6B7B96">lga_name · lga_type · is_current</text>
+</g>
+<g filter="url(#sh)">
+<rect x="1200" y="210" width="270" height="150" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M1201 240 v-18 a12 12 0 0 1 12 -12 h244 a12 12 0 0 1 12 12 v18 Z" fill="#3D6BBA"/>
+<text x="1216 " y="230" font-size="15" font-weight="700" fill="#FFFFFF">dim_suburb  ·  SCD2</text>
+<text x="1216" y="260" font-size="12.5" fill="#33415C">suburb_sk (PK) · sal_code (BK)</text>
+<text x="1216" y="279" font-size="12.5" fill="#6B7B96">suburb_name · postcode</text>
+<text x="1216" y="298" font-size="12.5" fill="#6B7B96">lga_sk (FK) · region</text>
+<text x="1216" y="317" font-size="12.5" fill="#6B7B96">asgs_edition · is_current</text>
+</g>
+<g filter="url(#sh)">
+<rect x="1200" y="430" width="270" height="120" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M1201 460 v-18 a12 12 0 0 1 12 -12 h244 a12 12 0 0 1 12 12 v18 Z" fill="#1FA39A"/>
+<text x="1216 " y="450" font-size="15" font-weight="700" fill="#FFFFFF">dim_year  ·  Type 1</text>
+<text x="1216" y="480" font-size="12.5" fill="#33415C">year_sk (PK) · year</text>
+<text x="1216" y="499" font-size="12.5" fill="#6B7B96">decade · is_census_year</text>
+</g>
+<g filter="url(#sh)">
+<rect x="1200" y="620" width="270" height="120" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M1201 650 v-18 a12 12 0 0 1 12 -12 h244 a12 12 0 0 1 12 12 v18 Z" fill="#1FA39A"/>
+<text x="1216 " y="640" font-size="15" font-weight="700" fill="#FFFFFF">dim_geo_quality  ·  Type 1</text>
+<text x="1216" y="670" font-size="12.5" fill="#33415C">geo_quality_sk (PK)</text>
+<text x="1216" y="689" font-size="12.5" fill="#6B7B96">is_synthetic · confidence_band</text>
+</g>
+<path d="M1410 210 V 166" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="1410" cy="210" r="3.5" fill="#3D6BBA"/>
+<text x="1418" y="190" font-size="11.5" fill="#3D6BBA">lga_sk</text>
+<g filter="url(#sh)">
+<rect x="70" y="150" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 180 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#1A2B4A"/>
+<text x="86 " y="170" font-size="15" font-weight="700" fill="#FFFFFF">fact_suburb_demographics</text>
+<text x="86" y="200" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk · geo_quality_sk</text>
+<text x="86" y="219" font-size="12.5" fill="#6B7B96">→ Q1 · population &amp; growth</text>
+</g>
+<g filter="url(#sh)">
+<rect x="70" y="266" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 296 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#1A2B4A"/>
+<text x="86 " y="286" font-size="15" font-weight="700" fill="#FFFFFF">fact_suburb_property</text>
+<text x="86" y="316" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk · geo_quality_sk</text>
+<text x="86" y="335" font-size="12.5" fill="#6B7B96">→ Q5 · Q6 · price &amp; rent</text>
+</g>
+<g filter="url(#sh)">
+<rect x="70" y="382" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 412 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#1A2B4A"/>
+<text x="86 " y="402" font-size="15" font-weight="700" fill="#FFFFFF">fact_suburb_crime</text>
+<text x="86" y="432" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk · geo_quality_sk</text>
+<text x="86" y="451" font-size="12.5" fill="#6B7B96">→ Q3 · offence rate</text>
+</g>
+<g filter="url(#sh)">
+<rect x="70" y="498" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 528 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#1A2B4A"/>
+<text x="86 " y="518" font-size="15" font-weight="700" fill="#FFFFFF">fact_suburb_transport</text>
+<text x="86" y="548" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk · geo_quality_sk</text>
+<text x="86" y="567" font-size="12.5" fill="#6B7B96">→ Q2 · connectivity</text>
+</g>
+<g filter="url(#sh)">
+<rect x="70" y="614" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 644 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#1A2B4A"/>
+<text x="86 " y="634" font-size="15" font-weight="700" fill="#FFFFFF">fact_suburb_education</text>
+<text x="86" y="664" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk · geo_quality_sk</text>
+<text x="86" y="683" font-size="12.5" fill="#6B7B96">→ Q4 · schooling</text>
+</g>
+<g filter="url(#sh)">
+<rect x="70" y="730" width="300" height="88" rx="12" fill="white" stroke="#C7D2E4" stroke-width="1.5"/>
+<path d="M71 760 v-18 a12 12 0 0 1 12 -12 h274 a12 12 0 0 1 12 12 v18 Z" fill="#8A6BBF"/>
+<text x="86 " y="750" font-size="15" font-weight="700" fill="#FFFFFF">bridge_suburb_ancestry  ·  bridge</text>
+<text x="86" y="780" font-size="12.5" fill="#33415C">FK: suburb_sk · year_sk</text>
+<text x="86" y="799" font-size="12.5" fill="#6B7B96">ancestry_sk · person_count</text>
+</g>
+<path d="M430 196 V 776" fill="none" stroke="#3D6BBA" stroke-width="2.5"/>
+<path d="M430 285 H 1200" fill="none" stroke="#3D6BBA" stroke-width="2.5"/>
+<polygon points="1191,280 1200,285 1191,290" fill="#3D6BBA"/>
+<text x="430" y="188" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3D6BBA">suburb_sk</text>
+<path d="M370 196 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="196" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="196" r="2.6" fill="#3D6BBA"/>
+<path d="M370 312 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="312" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="312" r="2.6" fill="#3D6BBA"/>
+<path d="M370 428 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="428" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="428" r="2.6" fill="#3D6BBA"/>
+<path d="M370 544 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="544" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="544" r="2.6" fill="#3D6BBA"/>
+<path d="M370 660 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="660" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="660" r="2.6" fill="#3D6BBA"/>
+<path d="M370 776 H 430" fill="none" stroke="#3D6BBA" stroke-width="2"/>
+<circle cx="430" cy="776" r="3.6" fill="#3D6BBA"/>
+<circle cx="370" cy="776" r="2.6" fill="#3D6BBA"/>
+<path d="M505 210 V 790" fill="none" stroke="#1FA39A" stroke-width="2.5"/>
+<path d="M505 490 H 1200" fill="none" stroke="#1FA39A" stroke-width="2.5"/>
+<polygon points="1191,485 1200,490 1191,495" fill="#1FA39A"/>
+<text x="505" y="202" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1FA39A">year_sk</text>
+<path d="M370 210 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="210" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="210" r="2.6" fill="#1FA39A"/>
+<path d="M370 326 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="326" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="326" r="2.6" fill="#1FA39A"/>
+<path d="M370 442 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="442" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="442" r="2.6" fill="#1FA39A"/>
+<path d="M370 558 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="558" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="558" r="2.6" fill="#1FA39A"/>
+<path d="M370 674 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="674" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="674" r="2.6" fill="#1FA39A"/>
+<path d="M370 790 H 505" fill="none" stroke="#1FA39A" stroke-width="2"/>
+<circle cx="505" cy="790" r="3.6" fill="#1FA39A"/>
+<circle cx="370" cy="790" r="2.6" fill="#1FA39A"/>
+<path d="M580 224 V 688" fill="none" stroke="#E0A436" stroke-width="2.5"/>
+<path d="M580 680 H 1200" fill="none" stroke="#E0A436" stroke-width="2.5"/>
+<polygon points="1191,675 1200,680 1191,685" fill="#E0A436"/>
+<text x="580" y="216" text-anchor="middle" font-size="11.5" font-weight="700" fill="#E0A436">geo_quality_sk</text>
+<path d="M370 224 H 580" fill="none" stroke="#E0A436" stroke-width="2"/>
+<circle cx="580" cy="224" r="3.6" fill="#E0A436"/>
+<circle cx="370" cy="224" r="2.6" fill="#E0A436"/>
+<path d="M370 340 H 580" fill="none" stroke="#E0A436" stroke-width="2"/>
+<circle cx="580" cy="340" r="3.6" fill="#E0A436"/>
+<circle cx="370" cy="340" r="2.6" fill="#E0A436"/>
+<path d="M370 456 H 580" fill="none" stroke="#E0A436" stroke-width="2"/>
+<circle cx="580" cy="456" r="3.6" fill="#E0A436"/>
+<circle cx="370" cy="456" r="2.6" fill="#E0A436"/>
+<path d="M370 572 H 580" fill="none" stroke="#E0A436" stroke-width="2"/>
+<circle cx="580" cy="572" r="3.6" fill="#E0A436"/>
+<circle cx="370" cy="572" r="2.6" fill="#E0A436"/>
+<path d="M370 688 H 580" fill="none" stroke="#E0A436" stroke-width="2"/>
+<circle cx="580" cy="688" r="3.6" fill="#E0A436"/>
+<circle cx="370" cy="688" r="2.6" fill="#E0A436"/>
+<text x="70" y="866" font-size="13" font-weight="700" fill="#1A2B4A">Legend</text>
+<rect x="70" y="880" width="22" height="14" rx="3" fill="#3D6BBA"/>
+<text x="100" y="892" font-size="12.5" fill="#33415C">SCD2 dimension</text>
+<rect x="216.39999999999998" y="880" width="22" height="14" rx="3" fill="#1FA39A"/>
+<text x="246.39999999999998" y="892" font-size="12.5" fill="#33415C">Type 1 dimension</text>
+<rect x="378.0" y="880" width="22" height="14" rx="3" fill="#1A2B4A"/>
+<text x="408.0" y="892" font-size="12.5" fill="#33415C">Fact (grain: suburb × year)</text>
+<rect x="623.2" y="880" width="22" height="14" rx="3" fill="#8A6BBF"/>
+<text x="653.2" y="892" font-size="12.5" fill="#33415C">Bridge</text>
+<text x="70" y="924" font-size="12.5" fill="#6B7B96">● junction = foreign-key join into the conformed dimension · lines crossing without a dot are not connected (data-bus convention)</text>
+</svg>

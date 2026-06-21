@@ -1,0 +1,7 @@
+entity: demographics
+rules:
+  - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
+  - { name: population_non_negative, type: value_range, column: population_total, min: 0, max: 500000, severity: WARN }
+  - { name: median_age_sane, type: value_range, column: median_age, min: 0, max: 120, severity: WARN }
+  - { name: age_bands_sum_to_total, type: cross_field, severity: WARN,
+      expr: "abs(population_total - (pop_0_14 + pop_15_24 + pop_25_44 + pop_45_64 + pop_65_plus)) <= 5" }

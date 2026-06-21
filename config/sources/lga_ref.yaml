@@ -1,0 +1,9 @@
+entity: lga_ref
+source_system: ABS
+connector: abs_geography
+abs:
+  base_url: https://api.data.abs.gov.au
+  asgs_structure: LGA
+landing_path: lga_ref/
+effective_field: asgs_edition_date
+key_fields: [lga_code]

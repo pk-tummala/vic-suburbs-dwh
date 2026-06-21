@@ -1,0 +1,4 @@
+entity: education
+rules:
+  - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
+  - { name: icsea_sane, type: value_range, column: mean_icsea, min: 500, max: 1300, severity: WARN }

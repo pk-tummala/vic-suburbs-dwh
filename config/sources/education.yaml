@@ -1,0 +1,10 @@
+entity: education
+source_system: DATAVIC
+connector: ckan
+ckan:
+  base_url: https://discover.data.vic.gov.au
+  resource_id: REPLACE_WITH_RESOURCE_ID
+  page_size: 1000
+landing_path: education/
+effective_field: reference_year
+key_fields: [suburb, postcode]

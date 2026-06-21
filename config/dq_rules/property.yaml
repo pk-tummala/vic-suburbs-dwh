@@ -1,0 +1,9 @@
+entity: property
+rules:
+  - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
+  - { name: minimum_batch_size, type: row_count_min, min: 1, severity: FATAL }
+  - { name: suburb_crosswalk_resolved, type: crosswalk_resolved, column: sal_code, severity: WARN,
+      fail_if_violation_pct_above: 20 }
+  - { name: postcode_is_victorian, type: regex_match, column: postcode, pattern: '^3\d{3}$', severity: WARN }
+  - { name: median_price_sane, type: value_range, column: median_house_price, min: 0, max: 50000000, severity: WARN }
+  - { name: sales_volume_non_negative, type: value_range, column: sales_volume, min: 0, max: 100000, severity: WARN }

@@ -1,0 +1,12 @@
+entity: demographics
+columns:
+  - { name: sal_code, type: string }
+  - { name: period, type: int }
+  - { name: population_total, type: int }
+  - { name: median_age, type: double }
+  - { name: pop_0_14, type: int }
+  - { name: pop_15_24, type: int }
+  - { name: pop_25_44, type: int }
+  - { name: pop_45_64, type: int }
+  - { name: pop_65_plus, type: int }
+  - { name: median_household_income_weekly, type: double }

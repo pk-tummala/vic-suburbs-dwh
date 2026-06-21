@@ -1,0 +1,26 @@
+sal_code,suburb_name,postcode,lga_code,lga_name,lga_type,region,area_sqkm,base_population,base_median_house_price,base_median_rent_weekly,base_offences,base_train_stations,base_tram_stops,base_bus_stops,base_govt_schools,base_mean_icsea
+SYN20001,Carlton,3053,LGA24600,Melbourne,City,Greater Melbourne,1.8,18500,1180000,560,2100,1,12,20,3,1075
+SYN20002,Fitzroy,3065,LGA26980,Yarra,City,Greater Melbourne,1.0,11000,1320000,580,1650,0,9,16,2,1065
+SYN20003,Richmond,3121,LGA26980,Yarra,City,Greater Melbourne,4.6,28000,1290000,590,2600,3,14,30,4,1060
+SYN20004,St Kilda,3182,LGA25340,Port Phillip,City,Greater Melbourne,2.7,20500,1240000,575,2400,1,11,24,3,1055
+SYN20005,Brunswick,3056,LGA23270,Merri-bek,City,Greater Melbourne,5.1,26000,1150000,540,1900,1,8,28,5,1040
+SYN20006,Footscray,3011,LGA24130,Maribyrnong,City,Greater Melbourne,4.4,17000,920000,490,2200,2,0,26,4,1010
+SYN20007,Box Hill,3128,LGA26350,Whitehorse,City,Greater Melbourne,5.0,12500,1320000,520,1100,1,6,30,5,1085
+SYN20008,Dandenong,3175,LGA22670,Greater Dandenong,City,Greater Melbourne,10.5,30000,720000,430,3400,2,0,40,7,960
+SYN20009,Frankston,3199,LGA22170,Frankston,City,Greater Melbourne,17.0,38000,760000,450,3100,2,0,36,8,985
+SYN20010,Werribee,3030,LGA27260,Wyndham,City,Greater Melbourne,40.0,42000,650000,420,2900,2,0,34,9,955
+SYN20011,Sunbury,3429,LGA22310,Hume,City,Greater Melbourne,46.0,38000,680000,430,2400,1,0,30,8,975
+SYN20012,Pakenham,3810,LGA22250,Cardinia,Shire,Greater Melbourne,55.0,46000,690000,440,2600,1,0,32,9,965
+SYN20013,Glen Waverley,3150,LGA24410,Monash,City,Greater Melbourne,11.5,42000,1450000,560,1300,1,0,44,10,1110
+SYN20014,Doncaster,3108,LGA22110,Manningham,City,Greater Melbourne,7.5,21000,1380000,540,900,0,0,28,5,1095
+SYN20015,Preston,3072,LGA23110,Darebin,City,Greater Melbourne,13.0,34000,980000,500,2300,2,7,38,7,1015
+SYN20016,Geelong,3220,LGA22750,Greater Geelong,City,Regional Victoria,5.5,16000,820000,440,2200,1,0,22,4,1005
+SYN20017,Ballarat Central,3350,LGA20570,Ballarat,City,Regional Victoria,3.2,9000,640000,400,1700,1,0,18,3,990
+SYN20018,Bendigo,3550,LGA22910,Greater Bendigo,City,Regional Victoria,4.0,9500,610000,390,1800,1,0,20,3,985
+SYN20019,Shepparton,3630,LGA22830,Greater Shepparton,City,Regional Victoria,28.0,32000,470000,360,3000,1,0,24,6,930
+SYN20020,Warrnambool,3280,LGA26730,Warrnambool,City,Regional Victoria,15.0,30000,560000,380,2100,1,0,20,5,970
+SYN20021,Mildura,3500,LGA24780,Mildura,Rural City,Regional Victoria,72.0,34000,420000,350,2700,0,0,22,6,925
+SYN20022,Traralgon,3844,LGA22250,Latrobe,City,Regional Victoria,30.0,26000,490000,360,1900,1,0,18,4,945
+SYN20023,Wangaratta,3677,LGA26610,Wangaratta,Rural City,Regional Victoria,40.0,19000,470000,350,1400,1,0,14,3,950
+SYN20024,Horsham,3400,LGA23350,Horsham,Rural City,Regional Victoria,45.0,16500,360000,320,1300,0,0,12,3,935
+SYN20025,Sale,3850,LGA26810,Wellington,Shire,Regional Victoria,25.0,15000,440000,340,1200,1,0,12,3,955

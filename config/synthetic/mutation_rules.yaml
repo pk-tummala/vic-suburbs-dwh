@@ -1,0 +1,7 @@
+# Probabilities applied per emit --mode update, so SCD2/CDC has real changes to capture.
+seed: 42
+mutation_probabilities:
+  suburb_lga_reassignment: 0.05   # amalgamation -> new dim_suburb version
+  suburb_rename:           0.02
+  boundary_revision:       0.10   # new asgs_edition
+  price_shock:             0.15

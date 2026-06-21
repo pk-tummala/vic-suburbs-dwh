@@ -1,0 +1,10 @@
+entity: suburb_ref
+columns:
+  - { name: sal_code, type: string }
+  - { name: suburb_name, type: string }
+  - { name: postcode, type: string }
+  - { name: lga_code, type: string }
+  - { name: region, type: string }
+  - { name: asgs_edition, type: string }
+  - { name: area_sqkm, type: double }
+  - { name: effective_ts, type: timestamp }

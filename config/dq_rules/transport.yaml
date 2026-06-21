@@ -1,0 +1,4 @@
+entity: transport
+rules:
+  - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
+  - { name: stations_non_negative, type: value_range, column: train_station_count, min: 0, max: 50, severity: WARN }

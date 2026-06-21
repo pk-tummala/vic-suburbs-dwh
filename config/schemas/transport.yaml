@@ -1,0 +1,9 @@
+entity: transport
+columns:
+  - { name: sal_code, type: string }
+  - { name: suburb, type: string }
+  - { name: postcode, type: string }
+  - { name: period, type: int }
+  - { name: train_station_count, type: int }
+  - { name: tram_stop_count, type: int }
+  - { name: bus_stop_count, type: int }

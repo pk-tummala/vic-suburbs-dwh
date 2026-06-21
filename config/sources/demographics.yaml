@@ -1,0 +1,10 @@
+entity: demographics
+source_system: ABS
+connector: abs_sdmx
+abs:
+  base_url: https://api.data.abs.gov.au
+  dataflow: REPLACE_WITH_DATAFLOW_ID
+  geography: SAL
+landing_path: demographics/
+effective_field: census_year
+key_fields: [sal_code]

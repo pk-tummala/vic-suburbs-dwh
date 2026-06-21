@@ -1,0 +1,19 @@
+# Lakeflow Declarative Pipeline (DLT): builds Bronze -> Silver -> Gold from config.
+resources:
+  pipelines:
+    vic_suburbs_pipeline:
+      name: "[${bundle.target}] vic_suburbs_pipeline"
+      catalog: ${var.catalog}
+      schema: 03_gold            # default publishing schema; per-table USE schema set in code
+      serverless: true
+      photon: true
+      continuous: false
+      development: ${bundle.target == "dev"}
+      configuration:
+        vic.env: ${bundle.target}
+        vic.catalog: ${var.catalog}
+        vic.landing_volume: ${var.landing_volume}
+        vic.config_dir: /Workspace/${workspace.file_path}/config
+      libraries:
+        - file:
+            path: ../../src/vic_suburbs/pipeline/dlt_entry.py

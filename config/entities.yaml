@@ -1,0 +1,26 @@
+# Registers every entity processed by the pipeline. Adding a subject area = add an
+# entry here plus its sources/schemas/dq_rules files. No transform code changes.
+entities:
+  - name: suburb_ref     # reference -> dim_suburb (SCD2)
+    kind: reference
+    scd: { keys: [sal_code], sequence_by: effective_ts,
+           track: [suburb_name, postcode, lga_code, region, asgs_edition] }
+  - name: lga_ref        # reference -> dim_lga (SCD2)
+    kind: reference
+    scd: { keys: [lga_code], sequence_by: effective_ts,
+           track: [lga_name, lga_type] }
+  - name: demographics   # measure -> fact_suburb_demographics (Q1)
+    kind: measure
+    grain: [sal_code, period]
+  - name: property       # measure -> fact_suburb_property (Q5, Q6)
+    kind: measure
+    grain: [sal_code, period]
+  - name: crime          # measure -> fact_suburb_crime (Q3)
+    kind: measure
+    grain: [sal_code, period]
+  - name: transport      # measure -> fact_suburb_transport (Q2)
+    kind: measure
+    grain: [sal_code, period]
+  - name: education      # measure -> fact_suburb_education (Q4)
+    kind: measure
+    grain: [sal_code, period]

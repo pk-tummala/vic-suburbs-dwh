@@ -1,0 +1,15 @@
+# One-off (re-runnable) job that provisions Unity Catalog: catalog, schemas, volume, grants.
+# Runs on serverless compute. Invoked by deployment/bootstrap.sh after the groups are created.
+resources:
+  jobs:
+    vic_suburbs_bootstrap_job:
+      name: "[${bundle.target}] vic_suburbs_bootstrap_job"
+      tags:
+        project: vic_suburbs
+        env: ${bundle.target}
+      tasks:
+        - task_key: bootstrap_unity_catalog
+          notebook_task:
+            notebook_path: ../../bootstrap/bootstrap_uc.py
+            base_parameters:
+              catalog: ${var.catalog}

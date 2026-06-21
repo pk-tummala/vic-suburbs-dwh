@@ -1,0 +1,344 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000" font-family="Inter, -apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.10"/>
+    </filter>
+    <filter id="iconShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+
+    <marker id="journeyArrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 Z" fill="#1A2B4A"/>
+    </marker>
+
+    <linearGradient id="gradTeal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7CC5C6"/><stop offset="100%" stop-color="#4A9899"/>
+    </linearGradient>
+    <linearGradient id="gradOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F5A875"/><stop offset="100%" stop-color="#E0814A"/>
+    </linearGradient>
+    <linearGradient id="gradBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6B95D9"/><stop offset="100%" stop-color="#3D6BBA"/>
+    </linearGradient>
+    <linearGradient id="gradRed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F47A5E"/><stop offset="100%" stop-color="#D6452E"/>
+    </linearGradient>
+    <linearGradient id="gradGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#88C292"/><stop offset="100%" stop-color="#5C9E68"/>
+    </linearGradient>
+    <linearGradient id="gradBronze" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D9A876"/><stop offset="100%" stop-color="#A87545"/>
+    </linearGradient>
+    <linearGradient id="gradSilver" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C8C8C8"/><stop offset="100%" stop-color="#8E8E8E"/>
+    </linearGradient>
+    <linearGradient id="gradGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E8C56A"/><stop offset="100%" stop-color="#C99A2E"/>
+    </linearGradient>
+    <linearGradient id="gradPurple" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A084D4"/><stop offset="100%" stop-color="#7B5BB8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ═══════════ TITLE BAND ═══════════ -->
+  <text x="750" y="55" font-size="13" font-weight="600" letter-spacing="4" fill="#5B7BA8" text-anchor="middle">A POC BY PAVAN</text>
+  <text x="750" y="100" font-size="42" font-weight="800" letter-spacing="1" fill="#1A2B4A" text-anchor="middle">VICTORIA SUBURBS PROFILER</text>
+  <text x="750" y="135" font-size="17" font-weight="400" fill="#5B7BA8" text-anchor="middle">From Public &amp; Synthetic Data to Star-Schema Insights — End-to-End on the Databricks Lakehouse</text>
+  <line x1="600" y1="155" x2="900" y2="155" stroke="#C9D3E2" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="750" cy="155" r="5" fill="#5B7BA8"/>
+
+  <!-- ═══════════ FIVE-PHASE HEADERS ═══════════ -->
+  <g>
+    <rect x="50" y="200" width="230" height="32" rx="16" fill="#FFE9B8"/>
+    <text x="165" y="221" font-size="14" font-weight="700" letter-spacing="2" fill="#8B6B1A" text-anchor="middle">1. SOURCE</text>
+    <rect x="320" y="200" width="230" height="32" rx="16" fill="#FFD9C2"/>
+    <text x="435" y="221" font-size="14" font-weight="700" letter-spacing="2" fill="#9C4F1F" text-anchor="middle">2. LAND</text>
+    <rect x="590" y="200" width="230" height="32" rx="16" fill="#D4E8F0"/>
+    <text x="705" y="221" font-size="14" font-weight="700" letter-spacing="2" fill="#2A6A8C" text-anchor="middle">3. INGEST</text>
+    <rect x="860" y="200" width="230" height="32" rx="16" fill="#FBDAD2"/>
+    <text x="975" y="221" font-size="14" font-weight="700" letter-spacing="2" fill="#A83A28" text-anchor="middle">4. LAKEHOUSE</text>
+    <rect x="1130" y="200" width="230" height="32" rx="16" fill="#D6EBDB"/>
+    <text x="1245" y="221" font-size="14" font-weight="700" letter-spacing="2" fill="#3B7548" text-anchor="middle">5. SERVE</text>
+  </g>
+
+  <g font-size="11" font-weight="500" fill="#7B8AA8" text-anchor="middle">
+    <text x="165" y="252">PUBLIC APIS · SYNTHETIC</text>
+    <text x="435" y="252">UNITY CATALOG · VOLUME</text>
+    <text x="705" y="252">AUTO LOADER · DLT</text>
+    <text x="975" y="252">DELTA LAKE · MEDALLION</text>
+    <text x="1245" y="252">AI/BI DASHBOARDS</text>
+  </g>
+
+  <!-- ─── ICON 1: SOURCE — synthetic DB cylinder + sparkles ─── -->
+  <g transform="translate(115, 280)" filter="url(#iconShadow)">
+    <ellipse cx="50" cy="20" rx="42" ry="10" fill="url(#gradTeal)"/>
+    <rect x="8" y="20" width="84" height="55" fill="url(#gradTeal)"/>
+    <ellipse cx="50" cy="20" rx="42" ry="10" fill="#9BD4D5"/>
+    <ellipse cx="50" cy="38" rx="42" ry="10" fill="none" stroke="#3F8889" stroke-width="1.5" opacity="0.5"/>
+    <ellipse cx="50" cy="56" rx="42" ry="10" fill="none" stroke="#3F8889" stroke-width="1.5" opacity="0.5"/>
+    <ellipse cx="50" cy="75" rx="42" ry="10" fill="url(#gradTeal)"/>
+    <g fill="#FFD75A">
+      <path d="M 5 5 L 7 0 L 9 5 L 14 7 L 9 9 L 7 14 L 5 9 L 0 7 Z" transform="translate(-5, -8)"/>
+      <path d="M 5 3 L 6 0 L 7 3 L 10 4 L 7 5 L 6 8 L 5 5 L 2 4 Z" transform="translate(90, 0)"/>
+      <path d="M 5 3 L 6 0 L 7 3 L 10 4 L 7 5 L 6 8 L 5 5 L 2 4 Z" transform="translate(-2, 80)"/>
+    </g>
+  </g>
+  <text x="165" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Synthetic + Public</text>
+  <text x="165" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">50 yrs VIC suburbs</text>
+  <text x="165" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">ABS · DataVic APIs</text>
+  <text x="165" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">+ synthetic universe</text>
+
+  <!-- emit/extract sub-icon: paper airplane -->
+  <g transform="translate(140, 470)" filter="url(#iconShadow)">
+    <path d="M 0 12 L 50 0 L 30 25 L 18 18 Z" fill="#F0945C"/>
+    <path d="M 30 25 L 25 18 L 18 18 Z" fill="#D17640"/>
+    <text x="25" y="50" font-size="11" font-weight="600" fill="#1A2B4A" text-anchor="middle">emit.py</text>
+    <text x="25" y="64" font-size="10" fill="#5B7BA8" text-anchor="middle">--mode mixed</text>
+  </g>
+
+  <!-- ─── ICON 2: LAND — Unity Catalog Volume (folder) with files ─── -->
+  <g transform="translate(385, 280)" filter="url(#iconShadow)">
+    <g transform="translate(0, -10)">
+      <rect x="14" y="0" width="13" height="16" rx="1" fill="#FFF8E8" stroke="#E0814A" stroke-width="1.2"/>
+      <line x1="17" y1="4" x2="24" y2="4" stroke="#E0814A" stroke-width="1"/>
+      <line x1="17" y1="8" x2="24" y2="8" stroke="#E0814A" stroke-width="1"/>
+      <rect x="40" y="-2" width="13" height="16" rx="1" fill="#FFF8E8" stroke="#E0814A" stroke-width="1.2" transform="rotate(14 46 6)"/>
+      <line x1="43" y1="2" x2="50" y2="2" stroke="#E0814A" stroke-width="1" transform="rotate(14 46 6)"/>
+      <rect x="63" y="4" width="13" height="16" rx="1" fill="#FFF8E8" stroke="#E0814A" stroke-width="1.2" transform="rotate(-12 69 12)"/>
+    </g>
+    <!-- folder body -->
+    <path d="M 6 30 L 6 88 L 88 88 L 88 40 L 46 40 L 38 30 Z" fill="url(#gradOrange)"/>
+    <path d="M 6 30 L 38 30 L 46 40 L 6 40 Z" fill="#F5B587"/>
+    <rect x="18" y="58" width="58" height="14" rx="2" fill="#D17640"/>
+    <text x="47" y="68" font-size="9" font-weight="700" fill="white" text-anchor="middle">VOLUME</text>
+  </g>
+  <text x="435" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Landing Volume</text>
+  <text x="435" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">Raw files in UC</text>
+  <text x="435" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">Per-entity paths</text>
+  <text x="435" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">batch_id stamped</text>
+
+  <!-- batch_id chip sub-icon -->
+  <g transform="translate(398, 472)" filter="url(#iconShadow)">
+    <rect x="0" y="0" width="74" height="34" rx="6" fill="#FFD9C2" stroke="#D17640" stroke-width="1.5"/>
+    <circle cx="15" cy="17" r="5" fill="#E0814A"/>
+    <text x="46" y="15" font-size="9" font-weight="700" fill="#9C4F1F" text-anchor="middle">batch_id</text>
+    <text x="46" y="27" font-size="8" fill="#9C4F1F" text-anchor="middle">UUID · UTC</text>
+  </g>
+
+  <!-- ─── ICON 3: INGEST — Auto Loader cog ─── -->
+  <g transform="translate(655, 280)" filter="url(#iconShadow)">
+    <g transform="translate(50, 55)">
+      <g fill="url(#gradBlue)">
+        <path d="M -8 -42 L 8 -42 L 8 -36 L 14 -32 L 22 -38 L 30 -30 L 24 -22 L 28 -16 L 36 -16 L 36 -8 L 42 -8 L 42 8 L 36 8 L 36 16 L 28 16 L 24 22 L 30 30 L 22 38 L 14 32 L 8 36 L 8 42 L -8 42 L -8 36 L -14 32 L -22 38 L -30 30 L -24 22 L -28 16 L -36 16 L -36 8 L -42 8 L -42 -8 L -36 -8 L -36 -16 L -28 -16 L -24 -22 L -30 -30 L -22 -38 L -14 -32 L -8 -36 Z"/>
+      </g>
+      <circle cx="0" cy="0" r="22" fill="#D4E8F0"/>
+      <circle cx="0" cy="0" r="22" fill="none" stroke="#3D6BBA" stroke-width="1.5"/>
+      <!-- down-arrow into store = loading -->
+      <path d="M 0 -12 L 0 6 M -7 -1 L 0 6 L 7 -1" stroke="#3D6BBA" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="-9" y="9" width="18" height="4" rx="2" fill="#3D6BBA"/>
+    </g>
+    <g transform="translate(95, 18)" opacity="0.7">
+      <g fill="url(#gradBlue)">
+        <path d="M -4 -16 L 4 -16 L 4 -13 L 8 -11 L 12 -14 L 16 -10 L 13 -6 L 15 -2 L 18 -2 L 18 2 L 15 2 L 13 6 L 16 10 L 12 14 L 8 11 L 4 13 L 4 16 L -4 16 L -4 13 L -8 11 L -12 14 L -16 10 L -13 6 L -15 2 L -18 2 L -18 -2 L -15 -2 L -13 -6 L -16 -10 L -12 -14 L -8 -11 L -4 -13 Z"/>
+      </g>
+      <circle cx="0" cy="0" r="8" fill="#D4E8F0"/>
+    </g>
+  </g>
+  <text x="705" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Auto Loader</text>
+  <text x="705" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">Incremental ingest</text>
+  <text x="705" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">Schema evolution</text>
+  <text x="705" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">checkpoint = watermark</text>
+
+  <!-- Bronze table + checkpoint sub-icons -->
+  <g transform="translate(652, 470)">
+    <g filter="url(#iconShadow)">
+      <ellipse cx="20" cy="8" rx="16" ry="4" fill="url(#gradBronze)"/>
+      <rect x="4" y="8" width="32" height="22" fill="url(#gradBronze)"/>
+      <ellipse cx="20" cy="30" rx="16" ry="4" fill="url(#gradBronze)"/>
+      <ellipse cx="20" cy="8" rx="16" ry="4" fill="#E5BC8B"/>
+      <text x="20" y="55" font-size="9" font-weight="600" fill="#1A2B4A" text-anchor="middle">Bronze</text>
+      <text x="20" y="67" font-size="8" fill="#5B7BA8" text-anchor="middle">raw append</text>
+    </g>
+    <g transform="translate(65, 0)" filter="url(#iconShadow)">
+      <rect x="4" y="4" width="32" height="26" rx="4" fill="#DBE2F5" stroke="#4B7BC9" stroke-width="1.5"/>
+      <path d="M 11 17 L 17 23 L 29 10" stroke="#3D6BBA" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="20" y="55" font-size="9" font-weight="600" fill="#1A2B4A" text-anchor="middle">Checkpoint</text>
+      <text x="20" y="67" font-size="8" fill="#5B7BA8" text-anchor="middle">exactly-once</text>
+    </g>
+  </g>
+
+  <!-- ─── ICON 4: LAKEHOUSE — medallion stack + delta topper ─── -->
+  <g transform="translate(925, 280)" filter="url(#iconShadow)">
+    <!-- Delta Lake mark on top (official logo icon) -->
+    <g transform="translate(50, 2)">
+      <circle cx="0" cy="0" r="15" fill="#EAF1FF" opacity="0.95"/>
+      <g transform="translate(-12.6,-12.6) scale(0.72)">
+        <path d="M34.5592717,28.0928444 L18.5379045,0.69978358 C18.1796084,0.0873136379 17.2944486,0.0873136379 16.9361525,0.69978358 L3.32065957,23.9789316 C3.08139471,24.3884473 3.51327379,24.8612058 3.94250773,24.6599347 C4.11877018,24.5769735 4.32220543,24.4935314 4.54559945,24.4103298 L4.54103057,24.4194675 C4.54103057,24.4194675 4.91303332,24.2751872 5.54161457,24.0760804 C6.23440055,23.8632669 6.99355548,23.6617554 7.68081072,23.4915046 C9.60382686,23.0476022 12.1236826,22.68618 14.3958571,23.063473 C16.4869598,23.4104672 17.9432291,23.9709962 19.0039299,24.5219066 C19.4901546,24.774878 19.9494469,24.1400447 19.5562831,23.7579423 C18.0355685,22.2800309 15.6955823,20.4960048 12.1364273,19.7483923 C11.9806046,19.7156888 11.9024528,19.5399072 11.9830093,19.40236 L17.3432635,10.2374339 C17.5195259,9.93636895 17.9545311,9.93636895 18.1307935,10.2374339 L28.3679629,27.7408004 C28.583662,28.1094366 28.4028306,28.5802714 27.9978839,28.7158949 C27.1956853,28.9840158 26.2374236,29.1845654 25.1646994,29.1845654 C24.4822535,29.1845654 23.7957197,29.1040089 23.1075026,28.9440982 C23.1070216,28.9440982 21.1236482,28.63101 18.4720165,27.0489763 C15.8203847,25.4671831 10.7078117,23.4491824 4.97098592,26.7161697 C2.52663689,28.2869014 0.897952594,30.4352353 0.0397251804,31.7840158 C-0.0946959808,31.995146 0.137354861,32.2469151 0.358103744,32.1290862 C2.32921333,31.0760804 7.64377877,28.5891687 12.4326829,29.4832257 C15.2790931,30.0144177 18.5318928,32.1632326 21.9133425,33.3953865 C27.5070903,35.4682137 32.9911852,31.9953865 33.0029681,31.987932 C33.5827345,31.6048677 33.923236,31.313662 33.9811886,31.2631639 L34.0511645,31.2020852 C34.9449811,30.4220096 35.1582755,29.1167537 34.5592717,28.0928444" fill="#00ADD4"/>
+      </g>
+    </g>
+    <ellipse cx="50" cy="92" rx="45" ry="8" fill="url(#gradBronze)"/>
+    <rect x="5" y="75" width="90" height="17" fill="url(#gradBronze)"/>
+    <ellipse cx="50" cy="75" rx="45" ry="8" fill="#E5BC8B"/>
+    <text x="50" y="89" font-size="10" font-weight="700" fill="#5C3D1F" text-anchor="middle">BRONZE</text>
+    <ellipse cx="50" cy="65" rx="45" ry="8" fill="url(#gradSilver)"/>
+    <rect x="5" y="48" width="90" height="17" fill="url(#gradSilver)"/>
+    <ellipse cx="50" cy="48" rx="45" ry="8" fill="#DCDCDC"/>
+    <text x="50" y="62" font-size="10" font-weight="700" fill="#404040" text-anchor="middle">SILVER</text>
+    <ellipse cx="50" cy="38" rx="45" ry="8" fill="url(#gradGold)"/>
+    <rect x="5" y="27" width="90" height="11" fill="url(#gradGold)"/>
+    <ellipse cx="50" cy="27" rx="45" ry="8" fill="#F0D480"/>
+    <text x="50" y="38" font-size="10" font-weight="700" fill="#7A5814" text-anchor="middle">GOLD</text>
+  </g>
+  <text x="975" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Medallion Layers</text>
+  <text x="975" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">Bronze: raw append</text>
+  <text x="975" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">Silver: SCD2 cleansed</text>
+  <text x="975" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">Gold: star schema</text>
+
+  <!-- DLT pipeline sub-icon -->
+  <g transform="translate(940, 470)" filter="url(#iconShadow)">
+    <rect x="0" y="0" width="70" height="55" rx="4" fill="#FBDAD2" stroke="#D6452E" stroke-width="1.5"/>
+    <circle cx="14" cy="16" r="6" fill="#F47A5E"/>
+    <circle cx="35" cy="38" r="6" fill="#F47A5E"/>
+    <circle cx="56" cy="16" r="6" fill="#F47A5E"/>
+    <path d="M 14 16 L 35 38 L 56 16" stroke="#D6452E" stroke-width="2" fill="none"/>
+    <text x="35" y="72" font-size="10" font-weight="600" fill="#1A2B4A" text-anchor="middle">DLT Pipeline</text>
+    <text x="35" y="84" font-size="9" fill="#5B7BA8" text-anchor="middle">SCD2 · DQ · idempotent</text>
+  </g>
+
+  <!-- ─── ICON 5: SERVE — dashboard monitor ─── -->
+  <g transform="translate(1195, 285)" filter="url(#iconShadow)">
+    <rect x="0" y="0" width="100" height="70" rx="4" fill="url(#gradGreen)"/>
+    <rect x="6" y="6" width="88" height="58" rx="2" fill="#EAF7ED"/>
+    <rect x="15" y="40" width="9" height="20" fill="#5C9E68"/>
+    <rect x="28" y="32" width="9" height="28" fill="#6FB37A"/>
+    <rect x="41" y="22" width="9" height="38" fill="#88C292"/>
+    <rect x="54" y="28" width="9" height="32" fill="#6FB37A"/>
+    <rect x="67" y="18" width="9" height="42" fill="#5C9E68"/>
+    <polyline points="19,40 32,32 45,22 58,28 71,18" stroke="#3B7548" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="19" cy="40" r="2" fill="#3B7548"/><circle cx="32" cy="32" r="2" fill="#3B7548"/>
+    <circle cx="45" cy="22" r="2" fill="#3B7548"/><circle cx="58" cy="28" r="2" fill="#3B7548"/>
+    <circle cx="71" cy="18" r="2" fill="#3B7548"/>
+    <rect x="44" y="70" width="12" height="10" fill="#3B7548"/>
+    <rect x="30" y="78" width="40" height="4" rx="2" fill="#3B7548"/>
+  </g>
+  <text x="1245" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">AI/BI Dashboards</text>
+  <text x="1245" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">6 suburb questions</text>
+  <text x="1245" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">Demographics · Transport</text>
+  <text x="1245" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">Crime · Schools · Price</text>
+
+  <!-- insight + verified sub-icons -->
+  <g transform="translate(1197, 470)">
+    <g filter="url(#iconShadow)">
+      <circle cx="20" cy="20" r="20" fill="#FFF1D6"/>
+      <path d="M 20 8 L 22 16 L 30 16 L 24 22 L 26 30 L 20 26 L 14 30 L 16 22 L 10 16 L 18 16 Z" fill="#E8C56A"/>
+      <text x="20" y="58" font-size="9" font-weight="600" fill="#1A2B4A" text-anchor="middle">Insights</text>
+      <text x="20" y="70" font-size="8" fill="#5B7BA8" text-anchor="middle">AI · BI</text>
+    </g>
+    <g transform="translate(55, 0)" filter="url(#iconShadow)">
+      <circle cx="20" cy="20" r="20" fill="#D6EBDB"/>
+      <path d="M 10 22 L 18 28 L 30 14" stroke="#3B7548" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="20" y="58" font-size="9" font-weight="600" fill="#1A2B4A" text-anchor="middle">Trusted</text>
+      <text x="20" y="70" font-size="8" fill="#5B7BA8" text-anchor="middle">flagged</text>
+    </g>
+  </g>
+
+  <!-- ═══════════ JOURNEY ARROWS ═══════════ -->
+  <g fill="none" stroke="#1A2B4A" stroke-width="3.5" stroke-linecap="round">
+    <path d="M 245 340 Q 295 340 320 340" marker-end="url(#journeyArrow)"/>
+    <path d="M 515 340 Q 565 340 590 340" marker-end="url(#journeyArrow)"/>
+    <path d="M 785 340 Q 835 340 860 340" marker-end="url(#journeyArrow)"/>
+    <path d="M 1055 340 Q 1105 340 1130 340" marker-end="url(#journeyArrow)"/>
+  </g>
+
+  <!-- ═══════════ KEY ENGINEERING PATTERNS ═══════════ -->
+  <rect x="50" y="610" width="1400" height="180" rx="12" fill="#F7F9FC" stroke="#E0E7F0" stroke-width="1.5"/>
+  <rect x="600" y="595" width="300" height="34" rx="17" fill="#1A2B4A"/>
+  <text x="750" y="617" font-size="13" font-weight="700" letter-spacing="2" fill="white" text-anchor="middle">KEY ENGINEERING PATTERNS</text>
+
+  <!-- Pattern 1: Medallion -->
+  <g transform="translate(110, 655)">
+    <circle cx="32" cy="32" r="32" fill="#F0E5D6"/>
+    <ellipse cx="32" cy="42" rx="20" ry="3" fill="url(#gradBronze)"/>
+    <ellipse cx="32" cy="34" rx="20" ry="3" fill="url(#gradSilver)"/>
+    <ellipse cx="32" cy="26" rx="20" ry="3" fill="url(#gradGold)"/>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Medallion</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">Bronze · Silver</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">Gold separation</text>
+  </g>
+
+  <!-- Pattern 2: Native SCD2 -->
+  <g transform="translate(330, 655)">
+    <circle cx="32" cy="32" r="32" fill="#FBDAD2"/>
+    <rect x="16" y="20" width="10" height="24" rx="2" fill="#D6452E"/>
+    <rect x="28" y="14" width="10" height="30" rx="2" fill="#F0735A"/>
+    <rect x="40" y="8" width="10" height="36" rx="2" fill="#F79A86"/>
+    <line x1="14" y1="48" x2="52" y2="48" stroke="#1A2B4A" stroke-width="1.5"/>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Native SCD2</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">APPLY CHANGES</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">full history kept</text>
+  </g>
+
+  <!-- Pattern 3: Idempotent -->
+  <g transform="translate(550, 655)">
+    <circle cx="32" cy="32" r="32" fill="#DBE2F5"/>
+    <g transform="translate(32,32) scale(1.5)">
+      <path d="M 10 0 A 10 10 0 1 1 0 -10" fill="none" stroke="#4B7BC9" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M 0 -14 L 8 -10 L 0 -6 Z" fill="#4B7BC9"/>
+    </g>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Idempotent</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">checkpoints · no-op</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">safe to re-run</text>
+  </g>
+
+  <!-- Pattern 4: Config-Driven -->
+  <g transform="translate(770, 655)">
+    <circle cx="32" cy="32" r="32" fill="#FFE9B8"/>
+    <rect x="16" y="16" width="32" height="32" rx="3" fill="none" stroke="#8B6B1A" stroke-width="2.5"/>
+    <line x1="22" y1="24" x2="42" y2="24" stroke="#8B6B1A" stroke-width="2"/>
+    <line x1="22" y1="32" x2="38" y2="32" stroke="#8B6B1A" stroke-width="2"/>
+    <line x1="22" y1="40" x2="40" y2="40" stroke="#8B6B1A" stroke-width="2"/>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Config-Driven</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">YAML per source</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">dev · qa · prod</text>
+  </g>
+
+  <!-- Pattern 5: Lineage -->
+  <g transform="translate(990, 655)">
+    <circle cx="32" cy="32" r="32" fill="#D6EBDB"/>
+    <circle cx="20" cy="20" r="5" fill="#3B7548"/>
+    <circle cx="44" cy="24" r="5" fill="#3B7548"/>
+    <circle cx="30" cy="44" r="5" fill="#3B7548"/>
+    <line x1="20" y1="20" x2="44" y2="24" stroke="#3B7548" stroke-width="2"/>
+    <line x1="44" y1="24" x2="30" y2="44" stroke="#3B7548" stroke-width="2"/>
+    <line x1="20" y1="20" x2="30" y2="44" stroke="#3B7548" stroke-width="2"/>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Lineage</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">UC system tables</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">job + data</text>
+  </g>
+
+  <!-- Pattern 6: Governed -->
+  <g transform="translate(1210, 655)">
+    <circle cx="32" cy="32" r="32" fill="#E2DBF5"/>
+    <path d="M 32 12 L 46 18 L 46 32 C 46 42 40 48 32 52 C 24 48 18 42 18 32 L 18 18 Z" fill="none" stroke="#7B5BB8" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M 26 32 L 30 36 L 39 26" stroke="#7B5BB8" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="32" y="95" font-size="12" font-weight="700" fill="#1A2B4A" text-anchor="middle">Governed</text>
+    <text x="32" y="112" font-size="10" fill="#5B7BA8" text-anchor="middle">Unity Catalog RBAC</text>
+    <text x="32" y="125" font-size="10" fill="#5B7BA8" text-anchor="middle">least privilege</text>
+  </g>
+
+  <!-- ═══════════ TECH STACK STRIP ═══════════ -->
+  <rect x="50" y="820" width="1400" height="100" rx="12" fill="#1A2B4A"/>
+  <g font-size="12" fill="#C9D3E2">
+    <text x="120" y="854" font-size="13" font-weight="700" letter-spacing="2" fill="#FFD75A">TECH STACK</text>
+    <line x1="120" y1="864" x2="220" y2="864" stroke="#FFD75A" stroke-width="2"/>
+    <text x="120" y="887">Databricks · Unity Catalog · Delta Lake · Auto Loader · Lakeflow Pipelines (DLT)</text>
+    <text x="120" y="905">Lakeflow Jobs · AI/BI Dashboards · Volumes · System Tables (lineage)</text>
+
+    <text x="800" y="854" font-size="13" font-weight="700" letter-spacing="2" fill="#FFD75A">LANGUAGES &amp; TOOLS</text>
+    <line x1="800" y1="864" x2="945" y2="864" stroke="#FFD75A" stroke-width="2"/>
+    <text x="800" y="887">PySpark · Python · SQL · YAML</text>
+    <text x="800" y="905">Databricks Asset Bundles · CLI · Connect · pytest</text>
+  </g>
+
+  <text x="750" y="965" font-size="13" font-style="italic" font-weight="500" fill="#5B7BA8" text-anchor="middle">Built as a portfolio POC — Enterprise patterns, one platform, demonstrable end-to-end.</text>
+</svg>

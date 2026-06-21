@@ -1,0 +1,4 @@
+entity: crime
+rules:
+  - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
+  - { name: offences_non_negative, type: value_range, column: offence_count_total, min: 0, max: 1000000, severity: WARN }

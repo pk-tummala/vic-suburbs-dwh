@@ -1,0 +1,37 @@
+# Orchestration job: pre-task (open run log) -> pipeline -> post-task (summarise/close).
+resources:
+  jobs:
+    vic_suburbs_job:
+      name: "[${bundle.target}] vic_suburbs_job"
+      tags:
+        project: vic_suburbs
+        env: ${bundle.target}
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      schedule:
+        quartz_cron_expression: "0 0 6 ? * MON"   # weekly; paused automatically in dev
+        timezone_id: Australia/Melbourne
+        pause_status: ${bundle.target == "dev" && "PAUSED" || "UNPAUSED"}
+      tasks:
+        - task_key: open_run_log
+          notebook_task:
+            notebook_path: ../../src/vic_suburbs/orchestration/pre_task.py
+            base_parameters:
+              env: ${bundle.target}
+              catalog: ${var.catalog}
+
+        - task_key: build_lakehouse
+          depends_on:
+            - task_key: open_run_log
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.vic_suburbs_pipeline.id}
+
+        - task_key: close_run_log
+          depends_on:
+            - task_key: build_lakehouse
+          notebook_task:
+            notebook_path: ../../src/vic_suburbs/orchestration/post_task.py
+            base_parameters:
+              env: ${bundle.target}
+              catalog: ${var.catalog}
