@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Databricks
+.databricks/
+*.lvdash.json.bak
+
+# Local synthetic artefacts (generated, never committed)
+/.local/
+synthetic_universe.db
+/landing/
+
+# OS / IDE
+.idea/
+.vscode/
+.DS_Store

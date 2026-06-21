@@ -1,0 +1,5 @@
+# Runtime libraries used by extractors & the synthetic generator.
+# The DLT pipeline itself runs on Databricks Runtime (PySpark provided by the cluster).
+pyyaml>=6.0
+pandas>=2.0
+requests>=2.31

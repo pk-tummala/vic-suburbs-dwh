@@ -1,0 +1,50 @@
+# Databricks Asset Bundle — Victoria Suburbs Profiler
+# One bundle, three targets. Deploy with:  databricks bundle deploy -t <dev|qa|prod>
+bundle:
+  name: vic_suburbs_dwh
+
+include:
+  - resources/pipelines/*.yml
+  - resources/jobs/*.yml
+  - resources/dashboards/*.yml
+
+variables:
+  catalog:
+    description: Target Unity Catalog catalog
+  landing_volume:
+    description: UC Volume path for raw landing files
+    default: /Volumes/${var.catalog}/00_landing/files
+  notification_email:
+    description: Where run-failure alerts are sent
+    default: data-team@example.com
+  warehouse_size:
+    description: Serverless SQL warehouse size for reporting
+    default: 2X-Small
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${DATABRICKS_HOST}
+    variables:
+      catalog: vic_suburbs_dev
+
+  qa:
+    mode: production
+    workspace:
+      host: ${DATABRICKS_HOST}
+    variables:
+      catalog: vic_suburbs_qa
+      warehouse_size: Small
+
+  prod:
+    mode: production
+    workspace:
+      host: ${DATABRICKS_HOST}
+    run_as:
+      service_principal_name: sp_vic_suburbs_prod
+    variables:
+      catalog: vic_suburbs_prod
+      warehouse_size: Medium
+      notification_email: oncall@example.com
