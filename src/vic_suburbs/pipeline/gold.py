@@ -43,19 +43,35 @@ def define_dim_year(spark):
     return _dim_year
 
 
+def _suburb_sk(dim_suburb):
+    """Deterministic surrogate key per SCD2 version: hash(business key + version start).
+
+    `dim_suburb` is an APPLY CHANGES (SCD2) target, which carries the source columns plus
+    `__START_AT` / `__END_AT` but no surrogate key — so we derive a stable one. `__START_AT`
+    uniquely identifies a version of a suburb, so (sal_code, __START_AT) is a safe SK input.
+    Guarded on `__START_AT` so unmatched rows stay NULL and fall through to the -1 unknown member.
+    """
+    return F.when(
+        dim_suburb["__START_AT"].isNotNull(),
+        F.xxhash64(dim_suburb["sal_code"], dim_suburb["__START_AT"].cast("string")),
+    )
+
+
 def _resolve_suburb_sk(df, dim_suburb):
     """Temporal join: bind each measure row to the dim_suburb version valid at its period."""
-    period_date = F.to_date(
-        F.concat_ws("-", F.col("period").cast("string"), F.lit("07"), F.lit("01"))
+    dim = dim_suburb.select(
+        dim_suburb["sal_code"].alias("_dim_sal_code"),
+        dim_suburb["__START_AT"],
+        dim_suburb["__END_AT"],
+        _suburb_sk(dim_suburb).alias("suburb_sk"),
     )
+    period_date = F.to_date(F.concat_ws("-", df["period"].cast("string"), F.lit("07"), F.lit("01")))
     cond = (
-        (df["sal_code"] == dim_suburb["sal_code"])
-        & (period_date >= dim_suburb["__START_AT"])
-        & (period_date < F.coalesce(dim_suburb["__END_AT"], F.lit("9999-12-31").cast("timestamp")))
+        (df["sal_code"] == dim["_dim_sal_code"])
+        & (period_date >= dim["__START_AT"])
+        & (period_date < F.coalesce(dim["__END_AT"], F.lit("9999-12-31").cast("timestamp")))
     )
-    return df.join(
-        dim_suburb.select("sal_code", "suburb_sk", "__START_AT", "__END_AT"), cond, "left"
-    )
+    return df.join(dim, cond, "left")
 
 
 def define_fact(spark, entity: str):

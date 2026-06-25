@@ -120,8 +120,11 @@ def emit_new(con, landing: Path, batch_id: str) -> list[Path]:
     written = []
     # modest, deterministic forward uplift per measure family
     uplift = {
-        "demographics": 1.012, "property": 1.06, "crime": 0.99,
-        "transport": 1.0, "education": 1.002,
+        "demographics": 1.012,
+        "property": 1.06,
+        "crime": 0.99,
+        "transport": 1.0,
+        "education": 1.002,
     }
     for entity, table in MEASURE_TABLES.items():
         df = pd.read_sql(f"SELECT * FROM {table}", con)

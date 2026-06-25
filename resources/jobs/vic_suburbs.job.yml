@@ -12,22 +12,27 @@ resources:
       schedule:
         quartz_cron_expression: "0 0 6 ? * MON"   # weekly; paused automatically in dev
         timezone_id: Australia/Melbourne
-        pause_status: ${bundle.target == "dev" && "PAUSED" || "UNPAUSED"}
+        pause_status: UNPAUSED                    # dev (mode: development) auto-pauses this
       tasks:
         - task_key: open_run_log
+          max_retries: 0
           notebook_task:
             notebook_path: ../../src/vic_suburbs/orchestration/pre_task.py
             base_parameters:
               env: ${bundle.target}
               catalog: ${var.catalog}
+              src_path: ${workspace.file_path}/src
+              run_id: "{{job.run_id}}"
 
         - task_key: build_lakehouse
+          max_retries: 0
           depends_on:
             - task_key: open_run_log
           pipeline_task:
             pipeline_id: ${resources.pipelines.vic_suburbs_pipeline.id}
 
         - task_key: close_run_log
+          max_retries: 0
           depends_on:
             - task_key: build_lakehouse
           notebook_task:
@@ -35,3 +40,5 @@ resources:
             base_parameters:
               env: ${bundle.target}
               catalog: ${var.catalog}
+              src_path: ${workspace.file_path}/src
+              run_id: "{{job.run_id}}"

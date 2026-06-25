@@ -11,13 +11,21 @@ Pipeline configuration (set in resources/pipelines/vic_suburbs.pipeline.yml) sup
 from __future__ import annotations
 
 import os
+import sys
 
 from pyspark.sql import SparkSession
 
-from vic_suburbs.common.config import load_entities
-from vic_suburbs.pipeline import bronze, gold, silver
-
 spark = SparkSession.getActiveSession()
+
+# Put the bundle-deployed package source on sys.path so `vic_suburbs` imports on the serverless
+# pipeline. bundle.sourcePath is set in the pipeline configuration to ${workspace.file_path}/src —
+# a /Workspace path FUSE-mounted on the pipeline compute.
+_src = spark.conf.get("bundle.sourcePath", None)
+if _src and _src not in sys.path:
+    sys.path.insert(0, _src)
+
+from vic_suburbs.common.config import load_entities  # noqa: E402
+from vic_suburbs.pipeline import bronze, gold, silver  # noqa: E402
 
 # Pipeline config -> environment for the config loader
 _conf = spark.conf

@@ -67,10 +67,16 @@ def conform_sal_code(df, crosswalk_df):
     return joined.drop("_norm_suburb")
 
 
-def dedup_latest(df, keys: list[str], order_col: str):
-    """Keep one row per key set — the latest by ``order_col``."""
+def dedup_latest(df, keys: list[str], order_col: str, tiebreak: list[str] | None = None):
+    """Keep one row per key set — the latest by ``order_col`` (descending).
+
+    ``tiebreak`` columns (also descending) deterministically resolve rows that share the same
+    ``order_col`` value — e.g. an original row and its restatement that land in the *same* batch
+    with identical ingest timestamps. Without a tiebreak ``row_number`` would pick one arbitrarily.
+    """
     from pyspark.sql import Window
     from pyspark.sql import functions as F  # noqa: N812
 
-    w = Window.partitionBy(*keys).orderBy(F.col(order_col).desc())
+    order = [F.col(order_col).desc(), *(F.col(c).desc() for c in (tiebreak or []))]
+    w = Window.partitionBy(*keys).orderBy(*order)
     return df.withColumn("_rn", F.row_number().over(w)).where(F.col("_rn") == 1).drop("_rn")

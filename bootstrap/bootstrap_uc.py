@@ -10,7 +10,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 dbutils.widgets.text("catalog", "vic_suburbs_dev")  # noqa: F821
-catalog = dbutils.widgets.get("catalog")            # noqa: F821
+catalog = dbutils.widgets.get("catalog")  # noqa: F821
 
 SCHEMAS = ["00_landing", "01_bronze", "02_silver", "03_gold", "04_reporting", "05_metadata"]
 

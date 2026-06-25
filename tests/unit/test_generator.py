@@ -56,13 +56,18 @@ def test_emit_update_produces_scd_changes(tmp_path):
 
 def test_emit_new_creates_next_period_inserts(tmp_path):
     import pandas as pd
+
     db = str(tmp_path / "u.db")
     seed.build_universe(CONFIG, db)
     landing = tmp_path / "landing"
     written = emit.emit("new", str(landing), db, MUT)
     # only measure entities, each one period beyond history, marked _new
     assert {p.parent.name for p in written} == {
-        "demographics", "property", "crime", "transport", "education"
+        "demographics",
+        "property",
+        "crime",
+        "transport",
+        "education",
     }
     prop = next(p for p in written if p.parent.name == "property")
     assert prop.name.endswith("_new.csv")

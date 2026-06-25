@@ -16,7 +16,9 @@
 | Public transport (Q2) | **PTV GTFS** timetable feed, published via DataVic | DataVic CKAN / GTFS zip | stop-level / periodic snapshot |
 | Schools (Q4) | **ACARA / VCAA** school results + **DataVic** school zones/enrolments | DataVic CKAN + ACARA files | school → suburb / annual |
 
-The DataVic open-data portal is CKAN-based and carries the housing (property sales, rental reports), GTFS public-transport, crime, and school datasets, reachable through an authenticated API — so the four DataVic-sourced subjects share one extractor pattern (CKAN `package_search` → `datastore_search` / resource download). ABS is a separate extractor (SDMX / DataPacks). Resource IDs are pinned in config rather than hard-coded in logic.
+The DataVic open-data portal is CKAN-based and carries several of these subjects, so where a source is a DataVic CKAN resource the subjects share one extractor pattern (CKAN `package_search` → `datastore_search` / resource download). In practice the access shape varies by subject — property is a Valuer-General CSV on DataVic, **crime is XLSX published by the Crime Statistics Agency** (not a CKAN datastore), **transport is a GTFS `.zip`** (`stops.txt`, geocoded to suburb), and schooling combines DataVic school locations with ACARA profile tables. ABS is a separate extractor (SDMX / DataPacks / ASGS geography). Resource IDs are pinned in config rather than hard-coded in logic.
+
+> The verified, current breakdown of each real source — exactly what exists, how far back, and the connector work each needs — is maintained in [`../runbooks/data-sources.md`](../runbooks/data-sources.md), which is authoritative; the table above is the design-level intent.
 
 ### Extractor pattern (config-driven, one engine)
 

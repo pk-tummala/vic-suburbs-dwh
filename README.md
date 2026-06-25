@@ -146,7 +146,7 @@ The six reporting views are served through **Databricks AI/BI Dashboards** — n
 | **Synthetic Universe** | NumPy + pandas, stored in SQLite |
 | **Configuration** | YAML (entities, sources, schemas, DQ rules, per-env) |
 | **Testing** | pytest, pytest-cov (unit + local-Spark integration) |
-| **Code Quality** | ruff (lint + format), black, pre-commit |
+| **Code Quality** | ruff (lint + format), pre-commit |
 | **CI/CD** | GitHub Actions (lint + unit tests; bundle validate) |
 | **Dev Environment** | IntelliJ IDEA + WSL Ubuntu 24.04 on Windows 11 |
 
@@ -175,6 +175,7 @@ vic-suburbs-dwh/
 │   └── orchestration/         # pre/post run-log tasks
 ├── bootstrap/                 # UC bootstrap notebook + catalog/schema/grants + teardown SQL
 ├── deployment/                # bootstrap.sh (one-command setup) + destroy.sh (full teardown)
+├── tools/                     # dev scripts: build-er-diagram.py, dbsql.sh (run from CLI or make)
 ├── tests/                     # unit (no Spark) + integration (local Spark)
 └── docs/                      # design specs, data model, architecture diagrams, runbooks
 ```
@@ -191,7 +192,9 @@ There are only **three**:
 2. **WSL Ubuntu 24.04** on Windows 11.
 3. **IntelliJ IDEA.**
 
-Everything else is automated. You do **not** pre-create groups, the catalog, schemas, the Volume, or grants by hand — `make bootstrap` (below) does all of it.
+Everything else is automated. You do **not** pre-create groups, the catalog, schemas, the Volume, or grants by hand — `make bootstrap` (below) does all of it. On its **first run** it sets up a one-time account-level login for the RBAC groups (it explains why and prompts for your **Account ID**), so be an **account admin** and have your Account ID ready.
+
+> **Running the shell scripts directly** instead of the `make` targets? Make them executable once — `find . -type f -name "*.sh" -exec chmod +x {} +`. The `make` targets invoke them via `bash`, so they don't need this.
 
 The full, click-by-click guide to installing the Databricks CLI, pointing IntelliJ's terminal at WSL, and authenticating is in **[`docs/runbooks/intellij-wsl-setup.md`](docs/runbooks/intellij-wsl-setup.md)**. The short version:
 
@@ -227,26 +230,30 @@ make generate                # ── or: python -m vic_suburbs.generator.seed
 make test                    # ── or: pytest tests/unit
 pytest tests/integration     #        local-Spark smoke test (auto-skips if no Spark)
 
-# 4. Authenticate the CLI (one-time)
+# 4. Authenticate the CLI to your workspace (one-time, OAuth)
 make auth HOST=https://<your-workspace>.cloud.databricks.com
                              # ── or: databricks auth login --host https://<your-workspace>...
+                             #    Bootstrap (step 5) adds a one-time ACCOUNT login for the
+                             #    account-level RBAC groups — be an account admin, ID ready.
 
-# 5. Bootstrap the environment — groups + catalog + schemas + Volume + grants (automated)
+# 5. Bootstrap the environment — account groups + catalog + schemas + Volume + grants (automated)
+#    First run prompts once for your Account ID (account groups need account-level auth).
 make bootstrap ENV=dev       # ── or: ./deployment/bootstrap.sh --env dev
 
-# 6. Extract a batch into the landing Volume (synthetic by default)
-python -m vic_suburbs.extract.run_extract property \
-    --landing /Volumes/vic_suburbs_dev/00_landing/files
+# 6. Load a synthetic batch into the landing Volume (generates locally + uploads every entity)
+make load ENV=dev            # ── = make generate, then upload to dbfs:/Volumes/vic_suburbs_dev/00_landing/files
 
 # 7. Run the pipeline job (pre-task → DLT pipeline → post-task)
 make run ENV=dev             # ── or: databricks bundle run vic_suburbs_job -t dev
 
 # 8. Query a reporting view
-databricks sql query -q \
-  "SELECT * FROM vic_suburbs_dev.04_reporting.vw_q6_most_expensive LIMIT 10"
+./tools/dbsql.sh "SELECT * FROM vic_suburbs_dev.04_reporting.vw_q6_most_expensive LIMIT 10"
+# (make form: make query SQL="SELECT * FROM vic_suburbs_dev.04_reporting.vw_q6_most_expensive LIMIT 10")
 ```
 
 That's it — a fully populated fact constellation answering all six questions. Step 5 replaces every piece of manual setup; you never hand-create groups, the catalog, or grants.
+
+> This quickstart runs on the built-in **synthetic** universe (zero external setup). The dashboard the POC ultimately answers should use **real** Victorian open data — what exists, how far back, and how to wire each source is in [`docs/runbooks/data-sources.md`](docs/runbooks/data-sources.md).
 
 ### Re-running with no new data
 
@@ -267,6 +274,8 @@ The run is logged as `NO_OP` with zero new rows — proving the pipeline is idem
 | **Bootstrap env** | `make bootstrap ENV=dev` | `./deployment/bootstrap.sh --env dev` |
 | Validate | `make validate ENV=dev` | `databricks bundle validate -t dev` |
 | Deploy | `make deploy ENV=dev` | `databricks bundle deploy -t dev` |
+| **Load data → Volume** | `make load ENV=dev` | `make generate`, then `databricks fs cp -r .local/landing/<e> dbfs:/Volumes/…/files/<e>` |
+| Extract real source | `make extract ENTITY=property` | `python -m vic_suburbs.extract.run_extract property` (once its source is pinned) |
 | Run | `make run ENV=dev` | `databricks bundle run vic_suburbs_job -t dev` |
 | **Destroy env** | `make destroy ENV=dev` | `./deployment/destroy.sh --env dev` |
 
@@ -283,7 +292,7 @@ make deploy ENV=qa        #                     ── or: databricks bundle dep
 make deploy ENV=prod      #                     ── or: databricks bundle deploy -t prod
 ```
 
-**What gets created.** `make bootstrap` creates the five RBAC groups, then deploys the bundle and runs the UC bootstrap job — provisioning the catalog, the six schemas, the landing Volume, and all least-privilege grants. The bundle itself deploys the Lakeflow Declarative Pipeline (`resources/pipelines/`), the orchestration job with failure notifications and schedule (`resources/jobs/`), the bootstrap job, and AI/BI dashboards (`resources/dashboards/`). After the first `make bootstrap`, day-to-day changes ship with `make deploy`.
+**What gets created.** On first run `make bootstrap` performs a one-time account login (prompting for your Account ID), creates the five **account-level** RBAC groups, provisions the catalog via `CREATE CATALOG` SQL on a small auto-provisioned serverless SQL warehouse (`vic_suburbs_<env>_wh` — the Default-Storage-compatible path), deploys the bundle, and runs the UC bootstrap job to create the six schemas, the landing Volume, and all least-privilege grants. The bundle itself deploys the Lakeflow Declarative Pipeline (`resources/pipelines/`), the orchestration job with failure notifications and schedule (`resources/jobs/`), the bootstrap job, and AI/BI dashboards (`resources/dashboards/`). After the first `make bootstrap`, day-to-day changes ship with `make deploy`.
 
 | Target | Catalog | Mode | Schedule | Run-as |
 |---|---|---|---|---|
@@ -298,27 +307,26 @@ Setup & auth: [`docs/runbooks/intellij-wsl-setup.md`](docs/runbooks/intellij-wsl
 ## 🎮 Running the Pipeline
 
 ```bash
-# Generate / extract data
-python -m vic_suburbs.generator.seed                       # build the synthetic universe (once)
-python -m vic_suburbs.generator.emit --mode mixed          # emit a realistic batch
-python -m vic_suburbs.extract.run_extract <entity> --landing <volume_path>   # CKAN / ABS / synthetic
+# Load data into the landing Volume (generates locally + uploads every entity)
+make load ENV=dev                                         # = make generate, then upload to the Volume
+make upload ENV=dev                                       # upload an already-generated batch only
 
 # Run the pipeline
-databricks bundle run vic_suburbs_job -t dev               # full job
-databricks bundle run vic_suburbs_pipeline -t dev          # pipeline only (iterating on transforms)
+make run ENV=dev                                          # full job: pre_task → pipeline → post_task
+databricks bundle run vic_suburbs_pipeline -t dev         # pipeline only (iterating on transforms)
 
 # Inspect observability (metadata schema + system tables)
-databricks sql query -q "SELECT * FROM vic_suburbs_dev.05_metadata.vw_pipeline_health"
-databricks sql query -q "SELECT * FROM vic_suburbs_dev.05_metadata.dq_results ORDER BY evaluated_at DESC LIMIT 20"
+./tools/dbsql.sh "SELECT * FROM vic_suburbs_dev.05_metadata.vw_pipeline_health"
+./tools/dbsql.sh "SELECT * FROM vic_suburbs_dev.05_metadata.dq_results ORDER BY evaluated_at DESC LIMIT 20"
 ```
 
-Emit modes: `history` (full back-cast), `new` (next-period net-new inserts), `update` (mutations → SCD2/CDC changes), `mixed` (the realistic default).
+Emit modes (passed through by `make generate` / `emit`): `history` (full back-cast), `new` (next-period net-new inserts), `update` (mutations → SCD2/CDC changes), `mixed` (the realistic default). Entities with a live connector load individually with `python -m vic_suburbs.extract.run_extract <entity>` once their `resource_id` is pinned in `config/sources/<entity>.yaml`; until then the synthetic batch covers every entity.
 
 ---
 
 ## 🔥 Teardown / Destroy
 
-One command wipes **every object this project deploys** for an environment — the bundle resources (pipeline, job, dashboards) **and** the catalog with all its schemas, tables, and Volumes (cascade):
+One command wipes **everything this project provisions** for an environment — a true clean slate:
 
 ```bash
 make destroy ENV=dev                      # prompts for confirmation
@@ -328,10 +336,12 @@ make destroy ENV=dev                      # prompts for confirmation
 
 What it does, in order:
 
-1. `databricks bundle destroy -t <env>` — removes the pipeline, job, and dashboards.
+1. `databricks bundle destroy -t <env>` — removes the pipeline, job, bootstrap job, and dashboards, then deletes the leftover bundle workspace folder (`.bundle/vic_suburbs_dwh`, and `.bundle` if now empty).
 2. `databricks catalogs delete vic_suburbs_<env> --force` — drops the catalog and, by cascade, every schema, managed table, view, and Volume (including Auto Loader checkpoints).
+3. Deletes the SQL warehouse `vic_suburbs_<env>_wh` that bootstrap provisioned.
+4. Deletes the five **account-level** RBAC groups (uses the account profile; best-effort).
 
-Account-level **groups** (`role_analyst`, `svc_ingest`, …) are intentionally left intact — they're shared identity, not project data. A SQL-only equivalent of step 2 lives in [`bootstrap/99_teardown.sql`](bootstrap/99_teardown.sql). Result: no residual objects, no residual cost.
+A SQL-only equivalent of step 2 lives in [`bootstrap/99_teardown.sql`](bootstrap/99_teardown.sql). Result: no residual objects, no residual cost. (The RBAC groups are workspace-wide, so this removes them for every environment — the intended clean-slate behaviour for a single-env POC.)
 
 ---
 
@@ -378,7 +388,7 @@ A suburb's 2011 median price is a historical fact that doesn't change; a suburb'
 ```bash
 make test                       # unit tests (fast, no Spark)
 pytest tests/integration -v     # local-Spark smoke test (auto-skips if pyspark/Java absent)
-make lint                       # ruff + black, matching CI
+make lint                       # ruff (check + format), matching CI
 ```
 
 The unit suite covers the load-bearing pure logic: config loading, the DQ rule compiler (YAML → Spark SQL), the type/conform helpers, and **generator determinism** (same seed ⇒ identical universe, age bands always sum to the population total). The integration test exercises the Silver conform + DQ-expression evaluation in a real Spark session. CI runs lint + unit tests on every PR and `databricks bundle validate` against `dev`.
@@ -413,6 +423,7 @@ The ruff version in `.pre-commit-config.yaml` is kept equal to the pin in `requi
 | [`docs/runbooks/intellij-wsl-setup.md`](docs/runbooks/intellij-wsl-setup.md) | Databricks CLI install, IntelliJ+WSL terminal, authentication |
 | [`docs/runbooks/repository-tour.md`](docs/runbooks/repository-tour.md) | Annotated walk through the repo |
 | [`docs/runbooks/local-development.md`](docs/runbooks/local-development.md) | Local dev, generator, tests |
+| [`docs/runbooks/data-sources.md`](docs/runbooks/data-sources.md) | Synthetic vs real data + end-to-end load paths for each |
 | [`docs/runbooks/deployment-guide.md`](docs/runbooks/deployment-guide.md) | Step-by-step deployment + teardown |
 
 ---

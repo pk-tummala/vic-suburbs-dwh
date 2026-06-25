@@ -35,7 +35,7 @@ src/                           # pipeline + extractor + helper code (referenced 
 config/                        # sources / schemas / dq_rules / pipeline-per-env (see 04, 05)
 ```
 
-Catalogs, schemas, volumes, and grants are provisioned by a **bootstrap job** (SQL run on deploy) rather than ad-hoc, so a fresh workspace reaches a known state from the bundle alone.
+Account-level identity (the RBAC groups), the catalog, schemas, volumes, and grants are provisioned by a small **bootstrap** — `deployment/bootstrap.sh` plus a UC bootstrap **job** in the bundle — run once per environment, so a fresh workspace reaches a known state from the bundle alone. The bootstrap runs in phases (account groups → catalog → bundle deploy → UC bootstrap job); see §4–§5 and the deployment runbook.
 
 ---
 
@@ -80,11 +80,15 @@ CREATE VOLUME  IF NOT EXISTS ${catalog}.`00_landing`.files;   -- managed landing
 
 Managed tables and a managed Volume are used throughout (no external storage wiring for the POC), keeping the footprint inside Unity Catalog.
 
+The catalog is created with `CREATE CATALOG` **SQL** executed through a serverless SQL warehouse that the bootstrap auto-provisions (`vic_suburbs_<env>_wh`) — not the CLI's `catalogs create`. On a **Default Storage** workspace there is no metastore storage root for the CLI path to bind to, so the SQL form (which inherits Default Storage) is the reliable one. The schemas, Volume, and grants are then applied by the UC bootstrap job. The warehouse is small and is removed again on teardown (§7).
+
 ---
 
 ## 5. RBAC — least privilege by role
 
-Access is granted to **groups**, never individuals, and each role gets the minimum it needs.
+Access is granted to **account-level groups**, never individuals, and each role gets the minimum it needs.
+
+Unity Catalog grants only resolve **account-level** principals — workspace-local groups produce `PRINCIPAL_DOES_NOT_EXIST`. The five role groups are therefore created through the **account** API (not workspace-local `groups create`). To do this the bootstrap performs a one-time **account-level login** (`databricks auth login --account-id <ID>`, cached as the `vic-account` CLI profile); subsequent runs reuse the profile. Creating account groups requires **account-admin** rights — on a solo account you are the admin. Workspace OAuth (the dev login) is sufficient for everything *except* this group-creation step.
 
 | Role (group) | Identity | Grants |
 |---|---|---|
@@ -118,7 +122,7 @@ merge to main → deploy -t dev → integration test (run pipeline on dev fixtur
 tag/release   → deploy -t qa → smoke test → manual approval → deploy -t prod
 ```
 
-The CI runner authenticates as `role_deployer` (service principal, OAuth). Secrets (tokens, source API keys) come from Databricks secret scopes or the CI secret store — never from `config/` files, which hold only non-sensitive settings and pointers.
+The CI runner authenticates as `role_deployer` (service principal, OAuth). Secrets (tokens, source API keys) come from Databricks secret scopes or the CI secret store — never from `config/` files, which hold only non-sensitive settings and pointers. The one-time **account-group provisioning** (§5) is an account-admin operation run during environment bootstrap, separate from the per-deploy service-principal auth; in CI it is done once by an admin (or a principal granted account `group manager`) rather than on every pipeline run.
 
 ---
 
@@ -127,6 +131,7 @@ The CI runner authenticates as `role_deployer` (service principal, OAuth). Secre
 - **Promotion** is re-deploying the same bundle to the next target; code is identical, only target variables change. QA and prod therefore can't drift from dev structurally.
 - **Rollback** is re-deploying a previous bundle revision (git tag). Because Gold tables are Delta, data-level recovery uses **time travel** / `RESTORE` independently of code rollback.
 - **Reprocessing** (full refresh of selected tables, backfills) is operator-gated and documented in the reprocessing runbook; it rebuilds from the immutable landing Volume.
+- **Teardown** (`make destroy` / `deployment/destroy.sh`) reverses bootstrap in phases: bundle destroy + workspace bundle-folder cleanup → catalog delete (cascade) → remove the bootstrap-provisioned SQL warehouse → delete the account-level RBAC groups (via the `vic-account` profile). It is confirmation-guarded and idempotent, so a partially-created environment can always be cleaned up.
 
 ---
 

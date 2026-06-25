@@ -5,15 +5,23 @@ resources:
       name: "[${bundle.target}] vic_suburbs_pipeline"
       catalog: ${var.catalog}
       schema: 03_gold            # default publishing schema; per-table USE schema set in code
+      event_log:                 # publish the event log as a queryable UC table (observability)
+        catalog: ${var.catalog}
+        schema: 05_metadata
+        name: pipeline_event_log
       serverless: true
       photon: true
       continuous: false
-      development: ${bundle.target == "dev"}
       configuration:
         vic.env: ${bundle.target}
         vic.catalog: ${var.catalog}
         vic.landing_volume: ${var.landing_volume}
-        vic.config_dir: /Workspace/${workspace.file_path}/config
+        vic.config_dir: ${workspace.file_path}/config
+        bundle.sourcePath: ${workspace.file_path}/src
+        # Fail fast — stop at first failure. Update retries are already disabled in dev
+        # (development mode); these caps make it explicit and also bound qa/prod (production mode).
+        pipelines.maxFlowRetryAttempts: "0"
+        pipelines.numUpdateRetryAttempts: "0"
       libraries:
         - file:
             path: ../../src/vic_suburbs/pipeline/dlt_entry.py

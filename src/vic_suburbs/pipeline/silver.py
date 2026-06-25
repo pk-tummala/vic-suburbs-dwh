@@ -8,7 +8,6 @@ suburb crosswalk is built from Silver's own ``suburb_ref_changes`` feed — neve
 from __future__ import annotations
 
 import dlt
-from pyspark.sql import Window
 from pyspark.sql import functions as F
 
 from vic_suburbs.common.config import load_dq_rules, load_entity_config, load_schema
@@ -26,7 +25,11 @@ def _select_typed(df, schema: dict, keep_lineage: bool = True):
     plan = build_cast_plan(schema)
     cols = [F.col(c).cast(t).alias(c) for c, t in plan]
     if keep_lineage:
-        cols += [F.col(c) for c in LINEAGE if c in df.columns]
+        # Don't re-add a lineage column the schema already typed (e.g. reference schemas list
+        # effective_ts so it's cast to timestamp for SCD2 sequencing). Re-adding it would create
+        # a duplicate column name, which Delta rejects on table creation.
+        planned = {c for c, _ in plan}
+        cols += [F.col(c) for c in LINEAGE if c in df.columns and c not in planned]
     return df.select(*cols)
 
 
@@ -46,10 +49,17 @@ def define_silver_measure(spark, entity: str):
     @dlt.expect_all_or_fail(fatal)
     def _silver():
         crosswalk = dlt.read("suburb_crosswalk")
-        df = dlt.read_stream(f"raw_{entity}")
+        # Batch read -> this Silver measure is a materialized view. Dedup-latest needs to see
+        # every version of a grain (incl. same-batch restatements) to pick the winner, which is a
+        # non-time-window (ROW_NUMBER) operation that Structured Streaming does not support. Bronze
+        # (raw_<entity>) stays a streaming Auto Loader table; only this conform/dedup step is batch.
+        df = dlt.read(f"raw_{entity}")
         df = conform_sal_code(df, crosswalk)  # adds sal_code for free-text sources
-        df = _select_typed(df, schema)
-        return dedup_latest(df, keys=grain, order_col="ingested_at")
+        # Dedup to one row per grain BEFORE typing, while source_file is still available as a
+        # deterministic tiebreak: within a single batch a restatement ("_upd" part-file) sorts
+        # after the base file, so it wins instead of an arbitrary row when ingest times are equal.
+        df = dedup_latest(df, keys=grain, order_col="ingested_at", tiebreak=["source_file"])
+        return _select_typed(df, schema)
 
     return _silver
 
@@ -71,22 +81,23 @@ def define_silver_changes(spark, entity: str):
 
 
 def define_suburb_crosswalk(spark):
-    """Build the (normalised name, postcode) -> sal_code crosswalk from the latest
-    suburb_ref version. Used by free-text sources to conform to the canonical key."""
+    """Build the (normalised name, postcode) -> sal_code crosswalk from ALL observed suburb_ref
+    versions. A measure row carries the suburb name as it was in its period, which may predate a
+    later SCD2 rename, so resolving against every historical alias — not just the current name —
+    keeps free-text conformance robust. The sal_code is stable across a suburb's renames, so each
+    (name, postcode) still resolves to exactly one suburb."""
 
     @dlt.table(
         name="suburb_crosswalk",
-        comment="Silver: current suburb identity crosswalk for sal_code resolution.",
+        comment="Silver: suburb identity crosswalk (all historical names) for sal_code resolution.",
         table_properties={"quality": "silver"},
     )
     def _crosswalk():
         df = dlt.read("suburb_ref_changes")
-        w = Window.partitionBy("sal_code").orderBy(F.col("effective_ts").desc())
-        latest = df.withColumn("_rn", F.row_number().over(w)).where("_rn = 1")
-        return latest.select(
+        return df.select(
             _norm_suburb_col("suburb_name").alias("_norm_suburb"),
             F.col("postcode"),
             F.col("sal_code"),
-        )
+        ).distinct()
 
     return _crosswalk

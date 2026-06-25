@@ -21,27 +21,24 @@ variables:
     description: Serverless SQL warehouse size for reporting
     default: 2X-Small
 
+# The workspace HOST is intentionally not set here. The Databricks CLI resolves it from your
+# profile in ~/.databrickscfg (or the DATABRICKS_HOST/DATABRICKS_TOKEN env vars), so this
+# bundle stays portable across workspaces. Select a profile per command with -p <profile>.
 targets:
   dev:
     mode: development
     default: true
-    workspace:
-      host: ${DATABRICKS_HOST}
     variables:
       catalog: vic_suburbs_dev
 
   qa:
     mode: production
-    workspace:
-      host: ${DATABRICKS_HOST}
     variables:
       catalog: vic_suburbs_qa
       warehouse_size: Small
 
   prod:
     mode: production
-    workspace:
-      host: ${DATABRICKS_HOST}
     run_as:
       service_principal_name: sp_vic_suburbs_prod
     variables:

@@ -1,0 +1,7 @@
+entity: lga_ref
+columns:
+  - { name: lga_code, type: string }
+  - { name: lga_name, type: string }
+  - { name: lga_type, type: string }
+  - { name: asgs_edition, type: string }
+  - { name: effective_ts, type: timestamp }
