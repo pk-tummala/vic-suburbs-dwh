@@ -450,9 +450,9 @@ Built as a portfolio piece to demonstrate enterprise data-engineering patterns e
 
 If you're a recruiter, hiring manager, or fellow engineer who'd like to discuss the project or share feedback:
 
-- 💼 **LinkedIn**: `<your-handle>`
-- 🐙 **GitHub**: `<your-handle>`
-- ✉️ **Email**: `<your-email>`
+- 💼 **LinkedIn**: `www.linkedin.com/in/pavan-k-tummala`
+- 🐙 **GitHub**: `https://github.com/pk-tummala/vic-suburbs-dwh`
+- ✉️ **Email**: `pk_tummala@yahoo.com`
 
 ---
 
