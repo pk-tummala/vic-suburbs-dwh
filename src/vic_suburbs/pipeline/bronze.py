@@ -1,4 +1,4 @@
-"""Bronze builders: Auto Loader ingestion of landing files into ``raw_<entity>`` tables.
+"""Bronze builders: Auto Loader ingestion of landing files into ``01_bronze.raw_<entity>``.
 
 Bronze is a faithful, append-only capture. The only added columns are lineage
 (``ingested_at``, ``source_file``); ``source_system``, ``batch_id`` and ``effective_ts``
@@ -11,15 +11,16 @@ import dlt
 from pyspark.sql import functions as F
 
 from vic_suburbs.common.config import load_source
+from vic_suburbs.pipeline._layers import fqn
 
 
-def define_bronze(spark, entity: str, landing_volume: str):
+def define_bronze(spark, entity: str, landing_volume: str, catalog: str):
     src = load_source(entity)
     landing_path = f"{landing_volume}/{src.get('landing_path', entity).rstrip('/')}/"
     checkpoint = f"{landing_volume}/_schemas/raw_{entity}"
 
     @dlt.table(
-        name=f"raw_{entity}",
+        name=fqn(catalog, "bronze", f"raw_{entity}"),
         comment=f"Bronze: faithful capture of {entity} landing files.",
         table_properties={"quality": "bronze"},
     )

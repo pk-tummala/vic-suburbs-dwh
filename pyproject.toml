@@ -27,3 +27,22 @@ markers = [
   "integration: requires a Spark session (skipped when unavailable)",
 ]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["vic_suburbs"]
+# DLT-decorated pipeline code and Databricks notebook entry scripts require a live
+# Spark/DLT/dbutils runtime; they are validated by the live pipeline run and the integration
+# smoke test (tests/integration), not by unit tests. The unit-coverage gate below therefore
+# measures the pure, runtime-independent logic, which is held at 100%.
+omit = [
+  "*/vic_suburbs/pipeline/*",
+  "*/vic_suburbs/orchestration/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+exclude_also = [
+  "if __name__ == .__main__.:",
+  "\\.\\.\\.",
+]

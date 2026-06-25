@@ -42,7 +42,7 @@ def normalize_suburb_name(name: str | None) -> str:
 # ── Spark transforms (imported lazily) ───────────────────────────────────────
 
 
-def cast_to_schema(df, schema: dict[str, Any]):
+def cast_to_schema(df, schema: dict[str, Any]):  # pragma: no cover
     """Select + cast a DataFrame to the configured schema (extra columns dropped)."""
     from pyspark.sql import functions as F  # noqa: N812
 
@@ -50,7 +50,7 @@ def cast_to_schema(df, schema: dict[str, Any]):
     return df.select(*[F.col(c).cast(t).alias(c) for c, t in plan])
 
 
-def conform_sal_code(df, crosswalk_df):
+def conform_sal_code(df, crosswalk_df):  # pragma: no cover
     """Resolve ``sal_code`` for free-text sources by joining a (norm_name, postcode) crosswalk.
 
     Rows already carrying ``sal_code`` (e.g. ABS sources, synthetic spine) pass through.
@@ -67,7 +67,9 @@ def conform_sal_code(df, crosswalk_df):
     return joined.drop("_norm_suburb")
 
 
-def dedup_latest(df, keys: list[str], order_col: str, tiebreak: list[str] | None = None):
+def dedup_latest(
+    df, keys: list[str], order_col: str, tiebreak: list[str] | None = None
+):  # pragma: no cover
     """Keep one row per key set — the latest by ``order_col`` (descending).
 
     ``tiebreak`` columns (also descending) deterministically resolve rows that share the same

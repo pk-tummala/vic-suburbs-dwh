@@ -16,7 +16,7 @@ jobs:
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Unit tests
-        run: pytest tests/unit --cov=vic_suburbs
+        run: pytest tests/unit --cov=vic_suburbs --cov-report=term-missing
 
   bundle-validate:
     runs-on: ubuntu-latest
@@ -27,4 +27,10 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: databricks bundle validate -t dev
+        run: |
+          if [ -z "$DATABRICKS_HOST" ]; then
+            echo "::notice::DATABRICKS_HOST/DATABRICKS_TOKEN secrets not set — skipping bundle validate."
+            echo "Add them under Settings → Secrets and variables → Actions to validate against the workspace."
+            exit 0
+          fi
+          databricks bundle validate -t dev

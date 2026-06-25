@@ -73,3 +73,35 @@ def test_emit_new_creates_next_period_inserts(tmp_path):
     assert prop.name.endswith("_new.csv")
     df = pd.read_csv(prop)
     assert df["period"].nunique() == 1 and df["period"].iloc[0] == 2022
+
+
+def test_emit_update_fires_all_mutation_branches(tmp_path):
+    import yaml
+
+    db = str(tmp_path / "u.db")
+    seed.build_universe(CONFIG, db)
+    mut = tmp_path / "mut.yaml"
+    mut.write_text(
+        yaml.safe_dump(
+            {
+                "seed": 1,
+                "mutation_probabilities": {
+                    "suburb_lga_reassignment": 1.0,
+                    "suburb_rename": 1.0,
+                    "boundary_revision": 1.0,
+                    "price_shock": 1.0,
+                },
+            }
+        )
+    )
+    written = emit.emit("update", str(tmp_path / "l"), db, str(mut))
+    assert any(p.parent.name == "suburb_ref" for p in written)
+
+
+def test_seed_rebuild_unlinks_existing_db(tmp_path):
+    from pathlib import Path
+
+    db = str(tmp_path / "u.db")
+    seed.build_universe(CONFIG, db)
+    seed.build_universe(CONFIG, db)  # second build hits the db.exists() -> unlink branch
+    assert Path(db).exists()

@@ -1,6 +1,10 @@
-"""Gold builders: conformed SCD2 dimensions (native APPLY CHANGES), dim_year, and one
-fact per measure entity. Surrogate keys are resolved against the dimension version valid
-at the fact's period (temporal join), so history binds correctly.
+"""Gold builders: conformed SCD2 dimensions with stable surrogate keys, dim_year, and one fact
+per measure entity. Tables publish to ``03_gold``; same-pipeline reads use fully-qualified names.
+
+APPLY CHANGES targets carry ``__START_AT`` / ``__END_AT`` but no surrogate key, so each dimension
+is published in two parts: an internal SCD2 history table (``dim_*_scd``) and a consumable
+dimension (``dim_*``) that derives ``<dim>_sk = xxhash64(business_key, __START_AT)``. Facts reuse
+the same formula via a temporal join, so fact<->dim keys line up across history.
 """
 
 from __future__ import annotations
@@ -9,28 +13,52 @@ import dlt
 from pyspark.sql import functions as F
 
 from vic_suburbs.common.config import load_entity_config
+from vic_suburbs.pipeline._layers import fqn
 
-# entity -> (target dim table)
-_DIM_TARGET = {"suburb_ref": "dim_suburb", "lga_ref": "dim_lga"}
+# reference entity -> (consumable dim table, surrogate-key column)
+_DIM = {"suburb_ref": ("dim_suburb", "suburb_sk"), "lga_ref": ("dim_lga", "lga_sk")}
 
 
-def define_dim_scd2(spark, entity: str):
-    """Native SCD2 dimension from the entity's CDC feed."""
+def _surrogate_key(business_keys: list[str], start_col):
+    """Deterministic SK per SCD2 version: hash(business key + version start)."""
+    parts = [F.col(k).cast("string") for k in business_keys] + [start_col.cast("string")]
+    return F.xxhash64(*parts)
+
+
+def define_dim_scd2(spark, entity: str, catalog: str):
+    """Native SCD2 history (``dim_*_scd``) + a consumable dimension (``dim_*``) carrying the SK."""
     scd = load_entity_config(entity)["manifest"]["scd"]
-    target = _DIM_TARGET[entity]
-    dlt.create_streaming_table(target, comment=f"Gold: SCD2 dimension {target}.")
+    dim_name, sk_col = _DIM[entity]
+    scd_table = fqn(catalog, "gold", f"{dim_name}_scd")
+
+    dlt.create_streaming_table(scd_table, comment=f"Gold: SCD2 history backing {dim_name}.")
     dlt.apply_changes(
-        target=target,
-        source=f"{entity}_changes",
+        target=scd_table,
+        source=fqn(catalog, "silver", f"{entity}_changes"),
         keys=scd["keys"],
         sequence_by=F.col(scd["sequence_by"]),
         stored_as_scd_type=2,
         track_history_column_list=scd.get("track"),
     )
 
+    @dlt.table(
+        name=fqn(catalog, "gold", dim_name),
+        comment=f"Gold: conformed SCD2 dimension {dim_name} (with surrogate key {sk_col}).",
+        table_properties={"quality": "gold"},
+    )
+    def _dim():
+        d = spark.read.table(scd_table)
+        return d.withColumn(sk_col, _surrogate_key(scd["keys"], F.col("__START_AT")))
 
-def define_dim_year(spark):
-    @dlt.table(name="dim_year", comment="Gold: calendar/census year dimension (Type 1).")
+    return _dim
+
+
+def define_dim_year(spark, catalog: str):
+    @dlt.table(
+        name=fqn(catalog, "gold", "dim_year"),
+        comment="Gold: calendar/census year dimension (Type 1).",
+        table_properties={"quality": "gold"},
+    )
     def _dim_year():
         years = spark.range(1971, 2031).withColumnRenamed("id", "year")
         return years.select(
@@ -43,27 +71,17 @@ def define_dim_year(spark):
     return _dim_year
 
 
-def _suburb_sk(dim_suburb):
-    """Deterministic surrogate key per SCD2 version: hash(business key + version start).
-
-    `dim_suburb` is an APPLY CHANGES (SCD2) target, which carries the source columns plus
-    `__START_AT` / `__END_AT` but no surrogate key — so we derive a stable one. `__START_AT`
-    uniquely identifies a version of a suburb, so (sal_code, __START_AT) is a safe SK input.
-    Guarded on `__START_AT` so unmatched rows stay NULL and fall through to the -1 unknown member.
-    """
-    return F.when(
-        dim_suburb["__START_AT"].isNotNull(),
-        F.xxhash64(dim_suburb["sal_code"], dim_suburb["__START_AT"].cast("string")),
-    )
-
-
 def _resolve_suburb_sk(df, dim_suburb):
-    """Temporal join: bind each measure row to the dim_suburb version valid at its period."""
+    """Temporal join: bind each measure row to the dim_suburb version valid at its period.
+
+    ``dim_suburb`` already carries ``suburb_sk`` (derived in define_dim_scd2), so the fact reads it
+    straight from the dimension. Unmatched rows keep NULL and fall through to the -1 unknown member.
+    """
     dim = dim_suburb.select(
         dim_suburb["sal_code"].alias("_dim_sal_code"),
         dim_suburb["__START_AT"],
         dim_suburb["__END_AT"],
-        _suburb_sk(dim_suburb).alias("suburb_sk"),
+        dim_suburb["suburb_sk"],
     )
     period_date = F.to_date(F.concat_ws("-", df["period"].cast("string"), F.lit("07"), F.lit("01")))
     cond = (
@@ -74,18 +92,18 @@ def _resolve_suburb_sk(df, dim_suburb):
     return df.join(dim, cond, "left")
 
 
-def define_fact(spark, entity: str):
+def define_fact(spark, entity: str, catalog: str):
     """Build fact_suburb_<entity> at grain suburb x year, with conformed SKs and lineage."""
 
     @dlt.table(
-        name=f"fact_suburb_{entity}",
+        name=fqn(catalog, "gold", f"fact_suburb_{entity}"),
         comment=f"Gold: fact_suburb_{entity} (grain suburb x year).",
         table_properties={"quality": "gold"},
     )
     def _fact():
-        s = dlt.read(entity)
-        dim_suburb = dlt.read("dim_suburb")
-        dim_year = dlt.read("dim_year")
+        s = spark.read.table(fqn(catalog, "silver", entity))
+        dim_suburb = spark.read.table(fqn(catalog, "gold", "dim_suburb"))
+        dim_year = spark.read.table(fqn(catalog, "gold", "dim_year"))
 
         f = _resolve_suburb_sk(s, dim_suburb)
         f = f.join(dim_year.select("year_sk", "year"), s["period"] == dim_year["year"], "left")

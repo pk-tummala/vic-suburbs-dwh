@@ -50,6 +50,7 @@ def build_universe(config_path: str, db_path: str = DEFAULT_DB) -> str:
     spine = pd.read_csv(seed_csv, dtype={"postcode": str})
     rng = np.random.default_rng(cfg["seed"])
     base = cfg["base_year"]
+    start = cfg["history_start_year"]
     noise = cfg["noise_pct"]
 
     # per-suburb growth rates (drawn once, reproducibly)
@@ -159,10 +160,12 @@ def build_universe(config_path: str, db_path: str = DEFAULT_DB) -> str:
                 )
             )
 
-    # suburb_ref: one initial SCD2 version per suburb (effective at the base ASGS edition)
+    # suburb_ref: one initial SCD2 version per suburb, effective from the START of the analytical
+    # window — so every back-cast measure period (history_start_year onward) binds to a suburb
+    # version in the Gold temporal join instead of falling through to the -1 unknown member.
     suburb_ref = spine.assign(
         asgs_edition="ASGS2021",
-        effective_ts=f"{base}-08-10T00:00:00",
+        effective_ts=f"{start}-01-01T00:00:00",
     )[
         [
             "sal_code",
@@ -178,7 +181,7 @@ def build_universe(config_path: str, db_path: str = DEFAULT_DB) -> str:
     lga_ref = (
         spine[["lga_code", "lga_name", "lga_type"]]
         .drop_duplicates()
-        .assign(asgs_edition="ASGS2021", effective_ts=f"{base}-08-10T00:00:00")
+        .assign(asgs_edition="ASGS2021", effective_ts=f"{start}-01-01T00:00:00")
     )
 
     db = Path(db_path)
@@ -205,7 +208,7 @@ def build_universe(config_path: str, db_path: str = DEFAULT_DB) -> str:
     return db_path
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Build the synthetic suburb universe.")
     ap.add_argument("--config", default="config/synthetic/seed_config.yaml")
     ap.add_argument("--db", default=DEFAULT_DB)

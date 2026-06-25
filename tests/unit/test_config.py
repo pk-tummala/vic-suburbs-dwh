@@ -32,3 +32,21 @@ def test_unknown_entity_raises(config_dir):
 
     with pytest.raises(KeyError):
         config.load_entity_config("does_not_exist", config_dir)
+
+
+def test_resolve_config_dir_uses_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("VIC_CONFIG_DIR", str(tmp_path))
+    assert config.resolve_config_dir() == tmp_path
+
+
+def test_default_config_dir_resolves_repo_config(monkeypatch):
+    monkeypatch.delenv("VIC_CONFIG_DIR", raising=False)
+    assert "property" in config.entity_names()  # no arg -> repo_root/config
+
+
+def test_load_dq_rules_missing_file_returns_empty():
+    assert config.load_dq_rules("suburb_ref") == []  # reference entity has no dq_rules file
+
+
+def test_load_pipeline_config(config_dir):
+    assert isinstance(config.load_pipeline_config("dev", config_dir), dict)

@@ -77,3 +77,27 @@ def test_real_property_rules_compile(config_dir):
     fatal = dq.build_expectation_exprs(rules, "FATAL")
     assert "sal_code_not_null" in fatal
     assert "median_price_sane" in warn
+
+
+def test_crosswalk_resolved_expr():
+    assert dq.rule_to_expr({"type": "crosswalk_resolved", "column": "sal_code"}) == (
+        "sal_code IS NOT NULL"
+    )
+
+
+def test_in_set_literal_handles_bool_and_number():
+    expr = dq.rule_to_expr({"type": "in_set", "column": "c", "values": [True, 5]})
+    assert "true" in expr and "5" in expr
+
+
+def test_rule_to_expr_rejects_batch_level_type():
+    with pytest.raises(ValueError):
+        dq.rule_to_expr({"type": "unique", "column": "c"})
+
+
+def test_batch_rules_selects_batch_types():
+    rules = [
+        {"name": "u", "type": "unique", "column": "c"},
+        {"name": "n", "type": "not_null", "column": "c", "severity": "FATAL"},
+    ]
+    assert [r["name"] for r in dq.batch_rules(rules)] == ["u"]

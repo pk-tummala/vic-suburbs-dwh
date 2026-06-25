@@ -8,7 +8,7 @@ CATALOG ?= vic_suburbs_$(ENV)
 VOLUME ?= dbfs:/Volumes/$(CATALOG)/00_landing/files
 ENTITY ?=
 
-.PHONY: help install fmt lint test seed emit generate extract er-diagram auth bootstrap validate deploy run upload load query destroy clean
+.PHONY: help install fmt lint test seed emit generate extract er-diagram auth bootstrap validate deploy run upload load query verify diagnose destroy clean
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -72,6 +72,12 @@ load: generate upload  ## One command: generate a synthetic batch + upload it to
 
 query:  ## Run a SQL statement on a warehouse: make query SQL="SELECT ..."
 	bash tools/dbsql.sh "$(SQL)"
+
+verify:  ## Validate the built warehouse (run health, row flow, keys, joins, serving) for ENV
+	bash operations/verify_pipeline.sh $(ENV)
+
+diagnose:  ## Explain fact<->dim joins (per-year resolution, orphans) for ENV [ENTITY=<name>]
+	bash operations/diagnose_fact_joins.sh $(ENV) $(ENTITY)
 
 destroy:  ## Tear down ALL deployed objects for ENV (pipeline, job, catalog+contents)
 	bash deployment/destroy.sh --env $(ENV)

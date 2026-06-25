@@ -123,7 +123,7 @@ def run_extract(entity: str, landing: str, batch_id: str | None = None) -> list[
     return extractor.extract()
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Extract a source entity into landing.")
     ap.add_argument("entity")
     ap.add_argument("--landing", default=".local/landing")

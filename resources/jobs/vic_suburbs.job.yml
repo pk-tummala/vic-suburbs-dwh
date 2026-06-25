@@ -31,10 +31,22 @@ resources:
           pipeline_task:
             pipeline_id: ${resources.pipelines.vic_suburbs_pipeline.id}
 
-        - task_key: close_run_log
+        - task_key: build_reporting
           max_retries: 0
           depends_on:
             - task_key: build_lakehouse
+          notebook_task:
+            notebook_path: ../../src/vic_suburbs/orchestration/build_reporting.py
+            base_parameters:
+              env: ${bundle.target}
+              catalog: ${var.catalog}
+              src_path: ${workspace.file_path}/src
+              run_id: "{{job.run_id}}"
+
+        - task_key: close_run_log
+          max_retries: 0
+          depends_on:
+            - task_key: build_reporting
           notebook_task:
             notebook_path: ../../src/vic_suburbs/orchestration/post_task.py
             base_parameters:

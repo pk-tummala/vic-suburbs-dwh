@@ -3,5 +3,6 @@ pytest>=8.0
 pytest-cov>=5.0
 ruff==0.5.7        # keep in sync with .pre-commit-config.yaml rev
 pre-commit>=3.7
+databricks-dlt==0.3.0  # IDE stub for `import dlt` (the real DLT API is injected by the Databricks runtime)
 # For local PySpark-based integration tests (optional; skipped if unavailable)
 pyspark>=3.5 ; python_version < "3.13"

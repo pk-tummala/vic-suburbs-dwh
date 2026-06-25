@@ -166,7 +166,7 @@ def emit(mode: str, landing: str, db_path: str, mutation_config: str) -> list[Pa
     return written
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Emit synthetic landing files.")
     ap.add_argument("--mode", choices=["history", "new", "update", "mixed"], default="mixed")
     ap.add_argument("--landing", default=".local/landing")
