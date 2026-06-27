@@ -31,16 +31,11 @@ A fixed vocabulary keeps rules declarative and the engine simple. Each maps to a
 |---|---|---|
 | `not_null` | Column must be present | `sal_code`, `period` |
 | `unique` | Column (or key set) unique within the batch | `sal_code + period` |
-| `in_set` | Value within an allowed set | `source_system ∈ {ABS,DATAVIC,ACARA,SYNTHETIC}` |
+| `in_set` | Value within an allowed set | `source_system ∈ {SYNTHETIC}` |
 | `value_range` | Numeric within `[min,max]` | `median_age ∈ [0,120]` |
-| `regex_match` | String matches pattern | `postcode ~ ^3\d{3}$` (Victoria) |
+| `regex_match` | String matches pattern | `sal_code ~ ^SYN\d{5}$` |
 | `row_count_min` | Batch has at least N rows | guard against empty loads |
 | `cross_field` | Relationship between columns holds | `pop_total = sum(age bands)` (tolerance) |
-| `crosswalk_resolved` | Non-ABS key mapped to a `sal_code` | property/crime/school suburb → SAL |
-
-`crosswalk_resolved` is specific to this warehouse: rows whose suburb name+postcode could not be mapped to a canonical `sal_code` are the most common real-world defect, so they get a first-class rule.
-
----
 
 ## 4. Rule configuration
 
@@ -54,16 +49,10 @@ rules:
     column: sal_code
     severity: FATAL
 
-  - name: suburb_crosswalk_resolved
-    type: crosswalk_resolved
-    column: sal_code
-    severity: WARN              # unmapped rows quarantined, run continues
-
-  - name: postcode_is_victorian
-    type: regex_match
-    column: postcode
-    pattern: '^3\d{3}$'
-    severity: WARN
+  - name: minimum_batch_size
+    type: row_count_min
+    min: 1
+    severity: FATAL
 
   - name: median_price_sane
     type: value_range
@@ -72,18 +61,22 @@ rules:
     max: 50000000
     severity: WARN
 
-  - name: minimum_batch_size
-    type: row_count_min
-    min: 1
-    severity: FATAL
+  - name: sales_volume_non_negative
+    type: value_range
+    column: sales_volume
+    min: 0
+    max: 100000
+    severity: WARN
 ```
 
-A FATAL escalation threshold can be attached to a WARN rule (e.g. *fail if > 20 % of rows are unmapped*) to stop pathological loads:
+A FATAL escalation threshold can be attached to any WARN rule (e.g. *fail the run if more than 20 % of rows violate it*) to stop pathological loads:
 
 ```yaml
-  - name: crosswalk_resolved_rate
-    type: crosswalk_resolved
-    column: sal_code
+  - name: median_price_sane
+    type: value_range
+    column: median_house_price
+    min: 0
+    max: 50000000
     severity: WARN
     fail_if_violation_pct_above: 20    # WARN per-row, FATAL in aggregate
 ```
@@ -122,11 +115,11 @@ WARN-dropped rows are not discarded blindly. A parallel expectation-free view ca
 
 ```
 dq_quarantine(
-  batch_id, entity, sal_code_raw, suburb_raw, postcode_raw,
-  failed_rules ARRAY<STRING>, source_system, ingested_at, quarantined_at)
+  batch_id, entity, sal_code, failed_rules ARRAY<STRING>,
+  source_system, ingested_at, quarantined_at)
 ```
 
-This makes "which suburbs failed the crosswalk this run, and why" a one-query answer, and feeds the crosswalk-improvement loop.
+This makes "which rows failed which rule this run, and why" a one-query answer.
 
 ---
 
@@ -137,7 +130,6 @@ Run after Gold loads (as DLT expectations on reconciliation views, or as a post-
 - **Fact↔dimension integrity:** every `fact_*.suburb_sk` resolves to a `dim_suburb` row (no `-1` Unknown beyond an allowed threshold).
 - **SCD2 sanity:** exactly one current version per business key; no overlapping `[valid_from, valid_to)` intervals.
 - **Grain uniqueness:** one row per (`suburb_sk`, `year_sk`, `source_system`) per fact.
-- **Population sanity for rates:** `fact_suburb_crime.offence_rate_per_100k` only computed where a matching `population_total` exists.
 
 ---
 
@@ -165,5 +157,5 @@ dq_results(
 
 ## 10. Cross-references
 - Where DQ sits in the flow → `04-pipeline-pattern.md` §4
-- Crosswalk to `sal_code` → `03-data-sourcing-and-synthetic-universe.md` §5
+- The synthetic universe & `sal_code` → `03-data-sourcing-and-synthetic-universe.md`
 - Metrics surfacing → `06-observability-and-lineage-spec.md`

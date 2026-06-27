@@ -36,7 +36,7 @@ Confusing the two is the classic bug: ordering SCD2 by ingestion time means a la
 
 ## 3. `batch_id` — end-to-end traceability within one platform
 
-Every extraction run mints one `batch_id` (UUID). It is written into the landing file(s), preserved verbatim through Bronze → Silver → Gold, and stored on every fact row. Given any output number on the dashboard, an operator can:
+Every generator run mints one `batch_id` (UUID). It is written into the landing file(s), preserved verbatim through Bronze → Silver → Gold, and stored on every fact row. Given any output number on the dashboard, an operator can:
 
 ```sql
 -- From a Gold fact row back to its source
@@ -72,7 +72,7 @@ def raw_property():
 ```
 
 - The **schemaLocation checkpoint is the watermark** — Auto Loader will never re-read a file it has already committed, even across pipeline restarts.
-- `schemaEvolutionMode=addNewColumns` lets a source add a column without breaking the run (new census topics, new DataVic fields).
+- `schemaEvolutionMode=addNewColumns` lets a source add a column without breaking the run (e.g. a new metric added to an entity).
 - Re-dropping the *same* file is a no-op (already committed); a genuinely new file is picked up on the next trigger.
 
 ---
@@ -123,5 +123,5 @@ A layer is idempotent iff, for the same input set, running it N times equals run
 
 ## 9. Cross-references
 - SCD2 sequencing → `01-scd2-strategy.md` §6–8
-- `batch_id` minting at extraction → `03-data-sourcing-and-synthetic-universe.md`
+- `batch_id` minting in the generator → `03-data-sourcing-and-synthetic-universe.md`
 - Run-log schema & lineage → observability spec (next doc set)

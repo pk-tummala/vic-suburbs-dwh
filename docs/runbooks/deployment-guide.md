@@ -12,7 +12,6 @@
 - [The deployment model](#the-deployment-model)
 - [First-time setup (per environment)](#first-time-setup-per-environment)
 - [Deploy and run](#deploy-and-run)
-- [Loading real source data](#loading-real-source-data)
 - [Subsequent deployments and promotion](#subsequent-deployments-and-promotion)
 - [Teardown](#teardown)
 - [Rollback](#rollback)
@@ -64,6 +63,49 @@ bootstrap. Three layers, all idempotent:
    to match the bundle (it updates in place; it never duplicates).
 
 So re-running setup or deploy is always safe.
+
+---
+
+## End-to-end in one block
+
+Two ready-to-paste sequences. The first stands up a brand-new environment; the second wipes an
+existing one and rebuilds it from scratch (use this after a schema change).
+
+**First time (nothing exists yet):**
+
+```bash
+# one-time local setup
+make install                                                   # Python deps + the package (editable)
+make auth HOST=https://<your-workspace>.cloud.databricks.com   # OAuth login (one-time)
+
+# stand up the environment, load data, build, check
+make bootstrap ENV=dev      # groups + catalog + schemas + Volume + grants + bundle deploy
+make load      ENV=dev      # full 50-year baseline + one batch, generated locally and uploaded
+make run       ENV=dev      # pre_task -> DLT pipeline -> post_task
+make verify    ENV=dev      # confirm rows flowed through every layer
+```
+
+**Full clean-slate rebuild (wipe and start over):**
+
+```bash
+make clean ENV=dev                              # remove local generated files (.local, the SQLite db)
+bash deployment/destroy.sh --env dev --force    # tear down catalog, jobs, pipeline, warehouse, groups (no prompt)
+make bootstrap ENV=dev                          # recreate everything (this also deploys the bundle)
+make load      ENV=dev                          # full 50-year baseline + a batch -> Volume
+make run       ENV=dev                          # build the warehouse
+make verify    ENV=dev                          # confirm it's correct
+```
+
+Notes:
+
+- `make bootstrap` already runs `databricks bundle deploy`, so there's **no** separate `make deploy`
+  in these blocks. Use `make deploy ENV=dev` only for day-to-day code changes *after* bootstrap.
+- `make destroy ENV=dev` does the same teardown but **prompts** you to type the catalog name; the
+  `--force` form above skips that prompt so the block runs unattended.
+- A from-scratch rebuild is the safe way to apply a schema change — the fresh pipeline's first run
+  is a complete build, so there's no incremental-state or full-refresh step to remember.
+- To load *new* data later (not a full rebuild), see "Loading new data after the first run" in
+  [`operations.md`](operations.md).
 
 ---
 
@@ -149,34 +191,6 @@ Confirm it worked:
 Re-running with **no new files** logs a `NO_OP` (zero rows written) — the idempotency proof. (That
 NO_OP is for an *incremental* re-run after data is loaded; a first run against a truly empty
 Volume is not a meaningful run and will error, as above.)
-
-> **Synthetic vs real:** `make load` always loads **synthetic** data (from the generator) — it
-> is the gap-filler, not a real source. Real source loading is a separate, per-entity path; see
-> the next section.
-
----
-
-## Loading real source data
-
-`make load` always loads **synthetic** data — the gap-filler that lets the project run end-to-end
-with zero external setup. The final dashboard is meant to answer from **real** Victorian open data,
-which is a separate, per-entity path: each source must be identified, pinned in
-`config/sources/<entity>.yaml`, and (for most) given real connector code, since the configured
-connectors start as stubs.
-
-Real data exists for all six dimensions (ABS, data.vic, Crime Statistics Agency, Transport
-Victoria, ACARA) but not with a full 50-year suburb-level history — so a real build covers the
-published window (roughly the last 10–15 years, deeper for property) while synthetic can back-fill
-the rest. The complete breakdown — what exists, how far back, what to pin/implement per entity, and
-a full end-to-end real-data walkthrough — is in **[`data-sources.md`](data-sources.md)**.
-
-Once a source is wired, it loads with the same pattern as synthetic:
-
-```bash
-make extract ENTITY=property        # pull one real entity into .local/landing (after pinning its config)
-make upload  ENV=dev                # push to the Volume
-make run     ENV=dev
-```
 
 ---
 
@@ -311,7 +325,7 @@ databricks api post /api/2.0/sql/statements --json "{
 | `catalogs create` fails: *Default Storage enabled / metastore storage root URL does not exist* | Expected on Default-Storage workspaces — the script creates the catalog via `CREATE CATALOG` SQL instead. Just ensure serverless SQL can run. |
 | `No SQL warehouse found` during bootstrap | The script now auto-provisions `vic_suburbs_<env>_wh`; this only appears if serverless SQL can't be created — enable serverless, or pre-create a warehouse and set `DATABRICKS_WAREHOUSE_ID`. |
 | `cannot reach the account API` during bootstrap | Account auth missing. Re-run and enter your Account ID at the prompt, set `DATABRICKS_ACCOUNT_ID`, or pass `--skip-groups`. |
-| Pipeline run does nothing (`NO_OP`) unexpectedly | No new files in the landing Volume — emit/extract a batch first. |
+| Pipeline run does nothing (`NO_OP`) unexpectedly | No new files in the landing Volume — emit a batch first (`make emit` + `make upload`). |
 | `account group already exists` during bootstrap | Expected and harmless; the script skips it. Use `--skip-groups` if your IdP manages groups. |
 | `databricks catalogs delete` fails: catalog not empty | Re-run with `--force` (the script already passes it); ensure no other workspace holds the catalog. |
 

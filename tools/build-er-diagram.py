@@ -13,8 +13,6 @@ W, H = 1660, 1000
 NAVY = "#1A2B4A"
 BLUE = "#3D6BBA"
 TEAL = "#1FA39A"
-AMBER = "#E0A436"
-VIOLET = "#8A6BBF"
 INK = "#33415C"
 MUTE = "#6B7B96"
 LINE = "#C7D2E4"
@@ -29,18 +27,16 @@ def esc(t):
 facts = [  # name, y, qmap
     ("fact_suburb_demographics", 150, "Q1 · population & growth"),
     ("fact_suburb_property", 266, "Q5 · Q6 · price & rent"),
-    ("fact_suburb_crime", 382, "Q3 · offence rate"),
+    ("fact_suburb_crime", 382, "Q3 · low crime"),
     ("fact_suburb_transport", 498, "Q2 · connectivity"),
     ("fact_suburb_education", 614, "Q4 · schooling"),
 ]
 FX, FW, FH = 70, 300, 88
-bridge = ("bridge_suburb_ancestry", 730)
 
 # buses: key -> (x, colour, branch_y to its dimension)
 buses = {
     "suburb_sk": (430, BLUE, 285),
     "year_sk": (505, TEAL, 490),
-    "geo_quality_sk": (580, AMBER, 680),
 }
 DIMX, DIMW = 1200, 270
 
@@ -125,17 +121,6 @@ s.append(
         [("year_sk (PK) · year", INK), ("decade · is_census_year", MUTE)],
     )
 )
-s.append(
-    box(
-        DIMX,
-        620,
-        DIMW,
-        120,
-        "dim_geo_quality  ·  Type 1",
-        TEAL,
-        [("geo_quality_sk (PK)", INK), ("is_synthetic · confidence_band", MUTE)],
-    )
-)
 
 # lga_sk link (dim_suburb -> dim_lga, vertical)
 lx = DIMX + DIMW - 60
@@ -153,34 +138,18 @@ for name, fy, qmap in facts:
             FH,
             name,
             NAVY,
-            [("FK: suburb_sk · year_sk · geo_quality_sk", INK), ("\u2192 " + qmap, MUTE)],
+            [("FK: suburb_sk · year_sk", INK), ("\u2192 " + qmap, MUTE)],
         )
     )
-# bridge
-bn, by = bridge
-s.append(
-    box(
-        FX,
-        by,
-        FW,
-        FH,
-        bn + "  ·  bridge",
-        VIOLET,
-        [("FK: suburb_sk · year_sk", INK), ("ancestry_sk · person_count", MUTE)],
-    )
-)
-
 FRX = FX + FW  # fact right edge = 370
-tap_dy = {"suburb_sk": 46, "year_sk": 60, "geo_quality_sk": 74}
+tap_dy = {"suburb_sk": 46, "year_sk": 60}
 
 # ---- buses (vertical) + branch to dimension ----
-all_fact_rows = facts + [(bn, by, None)]
+all_fact_rows = list(facts)
 for key, (bx, col, branch_y) in buses.items():
     taps = []
     for row in all_fact_rows:
         fname, fy = row[0], row[1]
-        if key == "geo_quality_sk" and fname.startswith("bridge"):
-            continue  # bridge has no geo_quality
         taps.append(fy + tap_dy[key])
     ys = taps + [branch_y]
     y0, y1 = min(ys), max(ys)
@@ -199,8 +168,6 @@ for key, (bx, col, branch_y) in buses.items():
     # taps from facts
     for row in all_fact_rows:
         fname, fy = row[0], row[1]
-        if key == "geo_quality_sk" and fname.startswith("bridge"):
-            continue
         ty = fy + tap_dy[key]
         s.append(f'<path d="M{FRX} {ty} H {bx}" fill="none" stroke="{col}" stroke-width="2"/>')
         s.append(f'<circle cx="{bx}" cy="{ty}" r="3.6" fill="{col}"/>')
@@ -212,7 +179,6 @@ items = [
     ("SCD2 dimension", BLUE),
     ("Type 1 dimension", TEAL),
     ("Fact (grain: suburb × year)", NAVY),
-    ("Bridge", VIOLET),
 ]
 s.append(f'<text x="70" y="{ly-14}" font-size="13" font-weight="700" fill="{NAVY}">Legend</text>')
 x = 70

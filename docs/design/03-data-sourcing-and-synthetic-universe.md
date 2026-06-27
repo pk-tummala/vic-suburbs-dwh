@@ -1,132 +1,162 @@
-# 03 — Data Sourcing & the Synthetic Universe
+# 03 — The Synthetic Universe
 
 > **Status:** Locked design
 >
-> Maps each subject area to a real public source, states the honest coverage limits (especially the 50-year ambition), and defines the synthetic-universe generator that fills gaps. The governing rule: **real data where it exists, transparently-flagged synthetic data where it doesn't — never silently mixed.**
+> This project runs entirely on **synthetic data**. A small generator invents a complete, plausible
+> 50-year history for a set of Victorian suburbs, writes it out as files, and the pipeline ingests
+> those files like any other source. There are no external APIs, accounts, or keys — anyone can
+> rebuild the exact same data from scratch. Every row is stamped `source_system = SYNTHETIC`.
 
 ---
 
-## 1. Source systems
+## 1. What the generator produces
 
-| Subject | Source | Access | Geography / cadence |
-|---|---|---|---|
-| Demographics (Q1) | **ABS Census** — DataPacks + the `data.abs.gov.au` SDMX API | Bulk DataPacks (CSV) + REST/SDMX | SAL (State Suburb) / every 5 yrs |
-| Property prices & rents (Q5, Q6) | **DataVic** — Victorian Property Sales Report + Rental Report | DataVic CKAN API (key + auth) | suburb / quarterly |
-| Crime (Q3) | **Crime Statistics Agency Vic**, published via DataVic | DataVic CKAN API | suburb/LGA / annual |
-| Public transport (Q2) | **PTV GTFS** timetable feed, published via DataVic | DataVic CKAN / GTFS zip | stop-level / periodic snapshot |
-| Schools (Q4) | **ACARA / VCAA** school results + **DataVic** school zones/enrolments | DataVic CKAN + ACARA files | school → suburb / annual |
+The generator covers all five subject areas plus the two reference tables the warehouse needs:
 
-The DataVic open-data portal is CKAN-based and carries several of these subjects, so where a source is a DataVic CKAN resource the subjects share one extractor pattern (CKAN `package_search` → `datastore_search` / resource download). In practice the access shape varies by subject — property is a Valuer-General CSV on DataVic, **crime is XLSX published by the Crime Statistics Agency** (not a CKAN datastore), **transport is a GTFS `.zip`** (`stops.txt`, geocoded to suburb), and schooling combines DataVic school locations with ACARA profile tables. ABS is a separate extractor (SDMX / DataPacks / ASGS geography). Resource IDs are pinned in config rather than hard-coded in logic.
+| Output | Feeds | Cadence |
+|---|---|---|
+| `demographics` | `fact_suburb_demographics` (Q1) | census years (every 5) |
+| `property` | `fact_suburb_property` (Q5, Q6) | yearly |
+| `crime` | `fact_suburb_crime` (Q3) | yearly |
+| `transport` | `fact_suburb_transport` (Q2) | yearly |
+| `education` | `fact_suburb_education` (Q4) | yearly |
+| `suburb_ref` | `dim_suburb` (SCD Type 2) | initial version + later changes |
+| `lga_ref` | `dim_lga` (SCD Type 2) | initial version + later changes |
 
-> The verified, current breakdown of each real source — exactly what exists, how far back, and the connector work each needs — is maintained in [`../runbooks/data-sources.md`](../runbooks/data-sources.md), which is authoritative; the table above is the design-level intent.
+Every measure row is keyed by `(sal_code, period)` — the suburb code and the year. Because the
+generator already knows each suburb's code, it writes `sal_code` straight onto every row, so the
+pipeline never has to match suburb names to codes.
 
-### Extractor pattern (config-driven, one engine)
+---
 
-A single parameterised extractor reads a source entry from `config/sources/*.yaml`:
+## 2. The suburb spine
+
+The starting point is one small file, `config/synthetic/suburb_seed.csv` — a list of 25 Victorian
+suburbs with present-day "anchor" values. Each row holds the suburb's identity (code, name,
+postcode, LGA, region, area) and a base value for each metric, for example:
+
+```
+sal_code, suburb_name, postcode, lga_code, ... , area_sqkm, base_population,
+base_median_house_price, base_median_rent_weekly, base_offences,
+base_train_stations, base_tram_stops, base_bus_stops, base_govt_schools, base_mean_icsea
+```
+
+These anchor values are the **only** numbers in the project that are hand-set; everything else is
+derived from them. They are still invented — they're just realistic starting points the generator
+projects history backward from.
+
+---
+
+## 3. How it works — build once, emit repeatedly
+
+The generator has two phases:
+
+```
+┌────────────┐   build    ┌────────────────────┐   read    ┌─────────────┐
+│  seed.py   │──────────► │ synthetic_universe │ ────────► │   emit.py   │
+│  (build +  │            │      (SQLite)      │           │ (increments)│
+│  baseline) │            └────────────────────┘           └─────┬───────┘
+└────────────┘                                                   │ files →
+                                                          00_landing Volume
+```
+
+**`seed.py` — build the universe and write the full baseline.** It reads the spine and the
+back-cast settings, projects ~50 years of history for every suburb into a local SQLite database,
+**and** writes that entire history out as landing files. So `make seed` gives you the complete
+50-year starting point in one step.
+
+**`emit.py` — add incremental batches on top.** It reads the same SQLite database and writes a
+small new batch of files. It has three modes:
+
+- `new` — the next year (the latest year + 1) for every measure, as brand-new rows.
+- `update` — changes to data that already exists: suburb renames, LGA reassignments, boundary
+  revisions, and price corrections. These are what the SCD Type 2 dimensions and CDC feeds capture.
+- `mixed` — `new` and `update` together (the default).
+
+`make generate` runs `seed` then `emit`; `make load` does the same and uploads the files to the
+landing Volume.
+
+---
+
+## 4. The back-cast model
+
+Every metric starts from its present-day anchor and is projected backward year by year. Growth
+rates are drawn once per suburb (so each suburb has its own trajectory) from
+`config/synthetic/seed_config.yaml`:
 
 ```yaml
-# config/sources/property.yaml
-entity: property
-source_system: DATAVIC
-connector: ckan
-ckan:
-  base_url: https://discover.data.vic.gov.au
-  resource_id: "<pinned-at-build-time>"
-  page_size: 1000
-landing_path: property/
-effective_field: contract_quarter      # → effective_ts
-key_fields: [suburb, postcode]          # → crosswalk to sal_code
+growth:
+  population_cagr: { mean: 0.012, sd: 0.006 }
+  price_cagr:      { mean: 0.060, sd: 0.020 }
+  rent_cagr:       { mean: 0.035, sd: 0.012 }
+  crime_drift:     { mean: -0.010, sd: 0.030 }
+  school_drift:    { mean: 0.002, sd: 0.010 }
+  income_cagr:     { mean: 0.030, sd: 0.006 }
+noise_pct: 0.03          # small year-to-year wobble
 ```
 
-Adding a source = adding a YAML file under `config/sources/` (metadata-driven; no code change).
+The numbers are shaped to look believable rather than random:
+
+- **Population** grows along a per-suburb curve; **prices** and **rents** follow their own growth
+  rates with a little noise.
+- **Age structure** varies by suburb (denser, inner suburbs skew toward young adults; leafier ones
+  toward children and mid-life) and ages gradually toward the present, mirroring the long national
+  rise in median age. The five age bands always add up to the total population.
+- **Income** rises with house price, so pricier suburbs have higher household incomes.
+- **Crime** is a per-person rate applied to that year's population, so offence counts grow and
+  shrink with the suburb rather than drifting on their own.
+- **Sales volume** scales with the number of dwellings; **unit prices** track house prices at a
+  per-suburb ratio; **school counts** grow as a suburb grows; **school ICSEA** stays within a
+  realistic band.
+
+The same seed always produces the same universe, so results are fully reproducible.
 
 ---
 
-## 2. Coverage limits
+## 5. Mutations — giving SCD2 and CDC something to capture
 
-The target is ~**50 years** of suburb history. That depth does **not** exist cleanly in public data:
+`emit --mode update` applies occasional changes so the history-tracking machinery is genuinely
+exercised. Probabilities live in `config/synthetic/mutation_rules.yaml`:
 
-- **ABS** small-area census data is reliable from roughly the 1990s onward in convenient digital form; suburb (SAL) geography and topics are **not consistently comparable** back to the 1970s, and boundaries were redrawn repeatedly.
-- **Crime** and **GTFS** histories are far shorter (years, not decades).
-- **Property** quarterly series go back further but not uniformly per suburb.
-
-This is why the project includes a **synthetic universe** to generate data for periods and entities not available publicly. Synthetic data is treated as first-class and always clearly labelled — it is never silently mixed with real data.
-
----
-
-## 3. Synthetic-universe design (two-phase)
-
-The generator uses a **seed-once / emit-repeatedly** pattern, keyed to suburbs.
-
-```
-┌────────────┐   build    ┌────────────────────┐   read    ┌────────────┐
-│  seed.py   │──────────► │ synthetic_universe │ ────────► │  emit.py   │
-│ (one-time) │            │   (Delta / SQLite) │           │ (repeated) │
-└────────────┘            └────────────────────┘           └─────┬──────┘
-   anchors on real                                               │ files →
-   recent values                                          00_landing Volume
-```
-
-### Phase 1 — `seed.py` (build the universe once)
-- Loads the **real list of Victorian suburbs** (SAL codes/names/LGAs from ABS geography) — the *spine is real*.
-- For each suburb, takes the **latest real anchor values** that do exist (e.g. 2021 population, recent median price, current station count).
-- **Back-casts** plausible history to the target horizon using documented, deterministic models:
-  - population via a growth curve seeded per region (inner-Melbourne vs. regional differ),
-  - prices via a CAGR with noise bounded to realistic ranges,
-  - crime/schools/transport via slow drift around the anchor.
-- Stores a `confidence_band` and `is_synthetic=true` on every generated point.
-- Seedable RNG (`--seed 42`) → reproducible universe.
-
-### Phase 2 — `emit.py` (produce batches)
-- Emits CSV/Parquet batches into landing, stamped with one `batch_id`, `source_system=SYNTHETIC`, and the correct `effective_ts` per period.
-- Supports modes: `--mode history` (back-fill the decades), `--mode update` (apply mutations so SCD2/CDC has something to capture — e.g. an LGA rename, a suburb boundary revision), `--mode mixed`.
-
-### Mutation rules (so SCD2 is exercised)
-`config/synthetic/mutation_rules.yaml`, e.g.:
 ```yaml
 mutation_probabilities:
-  suburb_lga_reassignment: 0.05    # amalgamation
-  suburb_rename:           0.02
-  boundary_revision:       0.10     # new asgs_edition
-  price_shock:             0.15
+  suburb_lga_reassignment: 0.05   # amalgamation  -> new dim_suburb version
+  suburb_rename:           0.02   # name change   -> new dim_suburb version
+  boundary_revision:       0.10   # new geography edition
+  price_shock:             0.15   # a corrected property figure (a restatement)
 ```
 
----
-
-## 4. Real ⊕ synthetic: the merge contract (never silently mixed)
-
-1. Every row, real or synthetic, carries `source_system` and flows through `dim_geo_quality` (`is_synthetic`, `confidence_band`).
-2. **Real always wins** where it exists: for a (suburb, period) present in both, the real row supersedes the synthetic one (synthetic is gap-fill only). Enforced by a priority rule in Silver (`source_system` ordering in the dedup/`SEQUENCE BY` tiebreak).
-3. Dashboards **expose the flag**: every chart can filter or shade synthetic data, and a default banner states the synthetic horizon. No insight is presented as real when it isn't.
-4. The crosswalk (`suburb_name+postcode → sal_code`) lives in Silver; rows that fail to map are **quarantined** by DQ, surfaced in `metadata.dq_results`, never dropped silently.
+A rename or reassignment lands a new `suburb_ref` version with a later effective date, which
+`APPLY CHANGES` turns into a new SCD Type 2 row in `dim_suburb`. A price shock re-emits a recent
+property row with a new value, which the Silver dedup keeps as the winning (latest) row.
 
 ---
 
-## 5. Conforming to `sal_code`
+## 6. One stable suburb key
 
-Non-ABS sources name suburbs as free text. The Silver crosswalk:
-- Normalises case/whitespace, resolves known aliases, joins on (suburb_name, postcode, lga).
-- Emits a match confidence; ambiguous matches (same suburb name in two LGAs) are disambiguated by postcode/LGA and flagged.
-- Unmatched → quarantine table for manual review; the run still succeeds (WARN), unless unmatched share exceeds a configured FATAL threshold.
+Every suburb has one identifier — its State Suburb code, `sal_code` — and it never changes, even
+when the suburb is renamed. The generator stamps `sal_code` onto every row it writes, so:
 
----
+- facts join `dim_suburb` by a stable key with no name-matching step, and
+- a `not_null` check on `sal_code` (a FATAL data-quality rule) guards that join.
 
-## 6. Licensing & provenance
-
-- ABS and DataVic are open data under their respective CC-style licences; the repo stores **only derived/aggregated tables and config pointers**, not bulk re-publication of source files.
-- `source_registry` in `05_metadata` records, per source: URL, resource id, licence, retrieved-at, row counts — provenance any reviewer can audit.
+This is what keeps a suburb's history connected across a rename: the name changes, the key doesn't.
 
 ---
 
 ## 7. Testing
 
-- **Unit:** seed determinism (same seed → identical universe); back-cast values stay within configured realistic bounds; crosswalk maps a known fixture set correctly.
-- **Integration:** emit `history` then `update`; assert SCD2 opens new `dim_suburb` versions exactly on mutated attributes.
-- **DQ:** quarantine path fires on a deliberately-unmappable fixture suburb.
+- **Determinism:** building the universe twice with the same seed produces identical tables.
+- **Invariant:** the five age bands always sum to the population total.
+- **Emit modes:** `new` produces exactly the next year for every measure; `update` produces at
+  least one dimension change or restatement.
+
+These run as fast unit tests (no Spark required) — see `tests/unit/test_generator.py`.
 
 ---
 
 ## 8. Cross-references
-- `source_system` / `dim_geo_quality` in the model → `data-model/data-model.md`
-- `effective_ts` minting & `batch_id` → `02-incremental-loading-strategy.md`
-- SCD2 mutation capture → `01-scd2-strategy.md`
+
+- How `sal_code`, `batch_id`, and `effective_ts` flow through the layers → `02-incremental-loading-strategy.md`
+- How dimension changes become SCD Type 2 history → `01-scd2-strategy.md`
+- Column-by-column definitions → `../data-model/data-dictionary.md`

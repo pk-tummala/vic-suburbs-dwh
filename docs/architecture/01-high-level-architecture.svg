@@ -43,7 +43,7 @@
   <!-- ═══════════ TITLE BAND ═══════════ -->
   <text x="750" y="55" font-size="13" font-weight="600" letter-spacing="4" fill="#5B7BA8" text-anchor="middle">A POC BY PAVAN</text>
   <text x="750" y="100" font-size="42" font-weight="800" letter-spacing="1" fill="#1A2B4A" text-anchor="middle">VICTORIA SUBURBS PROFILER</text>
-  <text x="750" y="135" font-size="17" font-weight="400" fill="#5B7BA8" text-anchor="middle">From Public &amp; Synthetic Data to Star-Schema Insights — End-to-End on the Databricks Lakehouse</text>
+  <text x="750" y="135" font-size="17" font-weight="400" fill="#5B7BA8" text-anchor="middle">From a Synthetic Universe to Star-Schema Insights — End-to-End on the Databricks Lakehouse</text>
   <line x1="600" y1="155" x2="900" y2="155" stroke="#C9D3E2" stroke-width="2" stroke-linecap="round"/>
   <circle cx="750" cy="155" r="5" fill="#5B7BA8"/>
 
@@ -62,7 +62,7 @@
   </g>
 
   <g font-size="11" font-weight="500" fill="#7B8AA8" text-anchor="middle">
-    <text x="165" y="252">PUBLIC APIS · SYNTHETIC</text>
+    <text x="165" y="252">SYNTHETIC GENERATOR</text>
     <text x="435" y="252">UNITY CATALOG · VOLUME</text>
     <text x="705" y="252">AUTO LOADER · DLT</text>
     <text x="975" y="252">DELTA LAKE · MEDALLION</text>
@@ -83,10 +83,10 @@
       <path d="M 5 3 L 6 0 L 7 3 L 10 4 L 7 5 L 6 8 L 5 5 L 2 4 Z" transform="translate(-2, 80)"/>
     </g>
   </g>
-  <text x="165" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Synthetic + Public</text>
+  <text x="165" y="395" font-size="14" font-weight="700" fill="#1A2B4A" text-anchor="middle">Synthetic universe</text>
   <text x="165" y="412" font-size="11" fill="#5B7BA8" text-anchor="middle">50 yrs VIC suburbs</text>
-  <text x="165" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">ABS · DataVic APIs</text>
-  <text x="165" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">+ synthetic universe</text>
+  <text x="165" y="427" font-size="11" fill="#5B7BA8" text-anchor="middle">Config-driven seed.py</text>
+  <text x="165" y="442" font-size="11" fill="#5B7BA8" text-anchor="middle">+ emit.py increments</text>
 
   <!-- emit/extract sub-icon: paper airplane -->
   <g transform="translate(140, 470)" filter="url(#iconShadow)">

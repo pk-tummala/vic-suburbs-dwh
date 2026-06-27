@@ -25,7 +25,7 @@
   <!-- ═══════════ TITLE BAND ═══════════ -->
   <text x="750" y="50" font-size="13" font-weight="600" letter-spacing="4" fill="#5B7BA8" text-anchor="middle">A POC BY PAVAN</text>
   <text x="750" y="95" font-size="38" font-weight="800" letter-spacing="1" fill="#1A2B4A" text-anchor="middle">OPERATIONAL DATA FLOW</text>
-  <text x="750" y="125" font-size="16" font-weight="400" fill="#5B7BA8" text-anchor="middle">End-to-End Sequence — From Extract on a Laptop to Suburb Insights on Databricks AI/BI</text>
+  <text x="750" y="125" font-size="16" font-weight="400" fill="#5B7BA8" text-anchor="middle">End-to-End Sequence — From Generation on a Laptop to Suburb Insights on Databricks AI/BI</text>
   <line x1="620" y1="145" x2="880" y2="145" stroke="#C9D3E2" stroke-width="2" stroke-linecap="round"/>
   <circle cx="750" cy="145" r="5" fill="#5B7BA8"/>
 
@@ -51,9 +51,9 @@
     <path d="M 0 12 L 50 0 L 30 25 L 18 18 Z" fill="#F0945C"/>
     <path d="M 30 25 L 25 18 L 18 18 Z" fill="#D17640"/>
   </g>
-  <text x="352" y="288" font-size="13" font-weight="700" fill="#1A2B4A" text-anchor="middle">Extract &amp; Emit</text>
-  <text x="352" y="304" font-size="10" fill="#475569" text-anchor="middle">extract.py · emit.py</text>
-  <text x="352" y="319" font-size="10" font-style="italic" fill="#7B8AA8" text-anchor="middle">public + synthetic → files</text>
+  <text x="352" y="288" font-size="13" font-weight="700" fill="#1A2B4A" text-anchor="middle">Seed &amp; Emit</text>
+  <text x="352" y="304" font-size="10" fill="#475569" text-anchor="middle">seed.py · emit.py</text>
+  <text x="352" y="319" font-size="10" font-style="italic" fill="#7B8AA8" text-anchor="middle">synthetic universe → files</text>
 
   <!-- Step 2 -->
   <g filter="url(#softShadow2)"><rect x="562" y="205" width="180" height="120" rx="10" fill="white" stroke="#E0D2A0" stroke-width="1.5"/></g>
@@ -75,15 +75,15 @@
     <rect x="0" y="0" width="220" height="120" rx="8" fill="#FFFBED" stroke="#E5C97B" stroke-width="1.2"/>
     <text x="110" y="24" font-size="11" font-weight="700" fill="#8B6B1A" text-anchor="middle">WHAT GETS WRITTEN</text>
     <text x="110" y="52" font-size="10" fill="#475569" text-anchor="middle">Files carry batch_id + effective_ts</text>
-    <text x="110" y="74" font-size="10" fill="#475569" text-anchor="middle">source_system tag (real/synthetic)</text>
+    <text x="110" y="74" font-size="10" fill="#475569" text-anchor="middle">source_system = SYNTHETIC</text>
     <text x="110" y="96" font-size="10" fill="#475569" text-anchor="middle">Per-entity landing paths</text>
   </g>
   <g transform="translate(1110, 205)" filter="url(#softShadow2)">
     <rect x="0" y="0" width="232" height="120" rx="8" fill="#FFFBED" stroke="#E5C97B" stroke-width="1.2"/>
     <text x="116" y="24" font-size="11" font-weight="700" fill="#8B6B1A" text-anchor="middle">EMIT MODES</text>
-    <text x="116" y="52" font-size="10" fill="#475569" text-anchor="middle">--mode history (back-fill decades)</text>
-    <text x="116" y="74" font-size="10" fill="#475569" text-anchor="middle">--mode update (mutations → SCD2)</text>
-    <text x="116" y="96" font-size="10" fill="#475569" text-anchor="middle">--mode mixed (realistic)</text>
+    <text x="116" y="52" font-size="10" fill="#475569" text-anchor="middle">--mode new (next-year inserts)</text>
+    <text x="116" y="74" font-size="10" fill="#475569" text-anchor="middle">--mode update (SCD2 changes)</text>
+    <text x="116" y="96" font-size="10" fill="#475569" text-anchor="middle">--mode mixed (new + update)</text>
   </g>
 
   <!-- LOCAL row arrow 1→2 -->
@@ -192,7 +192,7 @@
     <path d="M -4 0 L -1 3 L 5 -4" stroke="#3B7548" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
   <text x="352" y="818" font-size="13" font-weight="700" fill="#1A2B4A" text-anchor="middle">Silver + DQ</text>
-  <text x="352" y="834" font-size="10" fill="#475569" text-anchor="middle">Type · conform sal_code</text>
+  <text x="352" y="834" font-size="10" fill="#475569" text-anchor="middle">Type · dedup + cast</text>
   <text x="352" y="849" font-size="10" font-style="italic" fill="#7B8AA8" text-anchor="middle">expectations: warn / fail</text>
 
   <!-- Step 7: SCD2 dims -->

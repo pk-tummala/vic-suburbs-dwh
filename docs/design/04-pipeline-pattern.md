@@ -26,7 +26,7 @@ If a transform cannot be expressed within this contract, that is a signal to rev
 | Layer | Input | Allowed work | Forbidden |
 |---|---|---|---|
 | **Bronze** (`raw_*`) | Files in the landing Volume via Auto Loader | Faithful capture; add lineage columns; light typing only if free | Filtering, dedup, business logic, joins |
-| **Silver** (`*`, `*_changes`) | Bronze streaming tables | Type-cast, DQ, conform `sal_code`, dedup-latest, build CDC feed, SCD2 | Aggregation that belongs in Gold; cross-subject joins |
+| **Silver** (`*`, `*_changes`) | Bronze streaming tables | Type-cast, DQ, dedup-latest, build CDC feed, SCD2 | Aggregation that belongs in Gold; cross-subject joins |
 | **Gold dims** (`dim_*`) | Silver `*_changes` feeds | `APPLY CHANGES` (SCD2) or simple load (Type 1) | Measures, fact grain logic |
 | **Gold facts** (`fact_*`) | Silver measures + Gold dims (for SK lookup) | Resolve surrogate keys, compute measures, append by (suburb, year) | In-place mutation of historical rows |
 | **Reporting** (`vw_*`) | Gold | Curated, question-shaped views | New business logic not traceable to Gold |
@@ -65,20 +65,20 @@ Bronze never fails on content (only on unreadable files). Validation is Silver's
 Silver does four things in a fixed order, then either appends (measures) or emits a CDC feed (reference entities).
 
 ```python
-# 4a. cleansed + DQ + conformed
-@dlt.table(name="property", comment="Silver: typed, validated, conformed property.")
+# 4a. cleansed + DQ
+@dlt.table(name="property", comment="Silver: typed, validated property.")
 @dlt.expect_all_or_drop(DQ["property"]["warn"])     # WARN  → drop bad rows
 @dlt.expect_all_or_fail(DQ["property"]["fatal"])    # FATAL → fail the run
 def property():
     df = dlt.read_stream("raw_property")
     df = cast_to_schema(df, SCHEMA["property"])      # config-driven typing
-    df = conform_sal_code(df)                        # crosswalk to canonical key
+    # sal_code is already on every row (stamped by the generator) — no key-matching step
     return dedup_latest(df, keys=["sal_code", "period"])
 ```
 
 For SCD2 reference entities, Silver additionally builds the `*_changes` feed (one row per observed state, stamped with `effective_ts`) that `APPLY CHANGES` consumes. The two outputs — measure tables and `*_changes` feeds — are the only things Silver hands to Gold.
 
-The helper functions (`cast_to_schema`, `conform_sal_code`, `dedup_latest`) are **shared, entity-agnostic**, and driven by `config/schemas/*.yaml`. Adding an entity adds a YAML schema and a DQ rule file, not new transform logic.
+The helper functions (`cast_to_schema`, `dedup_latest`) are **shared, entity-agnostic**, and driven by `config/schemas/*.yaml`. Adding an entity adds a YAML schema and a DQ rule file, not new transform logic.
 
 ---
 
@@ -131,7 +131,7 @@ Default to streaming for the B→S→G path; reserve materialized views for `04_
 
 ## 8. The single invariant
 
-> Every row in Gold can be traced — by `batch_id` and surrogate keys — back through Silver and Bronze to the exact landing file and source extraction that produced it, and forward to the dimension version that was valid when it occurred.
+> Every row in Gold can be traced — by `batch_id` and surrogate keys — back through Silver and Bronze to the exact landing file that produced it, and forward to the dimension version that was valid when it occurred.
 
 If a change to a transform would break that statement, the change is wrong.
 

@@ -51,12 +51,11 @@ pipeline_run_log(
 Per-rule outcomes, materialized from the DLT event log (schema in `05-data-quality-spec.md` §8).
 
 ### `source_registry`
-Provenance of every extraction.
+Provenance of every generated batch.
 ```
 source_registry(
   batch_id STRING, source_system STRING, entity STRING,
-  endpoint STRING, resource_id STRING, licence STRING,
-  rows_extracted BIGINT, retrieved_at TIMESTAMP, is_synthetic BOOLEAN)
+  rows_written BIGINT, generated_at TIMESTAMP)
 ```
 
 ### Health views
@@ -80,10 +79,10 @@ DLT itself is declarative and doesn't write business log rows. A thin **orchestr
 
 ## 5. Cross-layer traceability (the `batch_id` thread)
 
-`batch_id` is minted at extraction, written into landing files, and carried through every layer onto every Gold fact row. Combined with surrogate keys and `source_registry`, any output is traceable to its origin:
+`batch_id` is minted by the generator, written into landing files, and carried through every layer onto every Gold fact row. Combined with surrogate keys and `source_registry`, any output is traceable to its origin:
 
 ```sql
--- Gold number → source extraction
+-- Gold number → source batch
 SELECT sr.*
 FROM   gold.fact_suburb_property f
 JOIN   metadata.source_registry sr USING (batch_id)

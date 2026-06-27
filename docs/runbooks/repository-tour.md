@@ -95,17 +95,15 @@ src/vic_suburbs/
 ├── common/                       # shared, entity-agnostic framework
 │   ├── config.py                     # single loader for all YAML config (resolves VIC_CONFIG_DIR / repo root)
 │   ├── dq.py                         # ★ compiles DQ rules → Spark SQL boolean expressions (the engine)
-│   ├── transforms.py                 # typing, suburb-name conform, dedup (Spark fns + pure helpers)
+│   ├── transforms.py                 # typing + dedup helpers (Spark fns + pure helpers)
 │   ├── lineage.py                    # batch_id minting + lineage column constants
 │   └── runlog.py                     # run-log DDL + open/close helpers (05_metadata)
 ├── generator/                    # the synthetic universe
-│   ├── seed.py                       # build the universe once (deterministic ~50-yr back-cast → SQLite)
-│   └── emit.py                       # emit landing files: --mode history | new | update | mixed
-├── extract/
-│   └── run_extract.py                # connector interface + CKAN (DataVic) / ABS / synthetic
+│   ├── seed.py                       # build the universe + write the full 50-yr baseline (deterministic → SQLite)
+│   └── emit.py                       # emit an incremental batch: --mode new | update | mixed
 ├── pipeline/                     # the generic, config-driven DLT builders
 │   ├── bronze.py                     # Auto Loader ingestion → raw_<entity>
-│   ├── silver.py                     # type + DQ + conform + dedup; CDC feeds; suburb crosswalk
+│   ├── silver.py                     # type + DQ + dedup; CDC feeds for SCD2
 │   ├── gold.py                       # SCD2 dims (APPLY CHANGES), dim_year, facts (temporal SK lookup)
 │   └── dlt_entry.py                  # ★ wires all builders for every registered entity
 └── orchestration/                # Databricks notebooks bracketing the pipeline
@@ -156,7 +154,7 @@ tests/
 │   ├── test_transforms.py            # cast plan + suburb-name normalisation
 │   └── test_generator.py             # generator determinism + emit modes
 └── integration/
-    └── test_pipeline_smoke.py        # conform + DQ-expr in a real SparkSession (auto-skips if no pyspark)
+    └── test_pipeline_smoke.py        # dedup + DQ-expr in a real SparkSession (auto-skips if no pyspark)
 ```
 
 ---
@@ -195,7 +193,6 @@ docs/
 └── runbooks/
     ├── intellij-wsl-setup.md              # local dev environment (this stack)
     ├── local-development.md               # local workflow (make + direct commands)
-    ├── data-sources.md                    # synthetic vs real data + load paths
     ├── deployment-guide.md                # deploy / run / teardown / rollback
     └── repository-tour.md                 # this file
 ```

@@ -22,12 +22,11 @@ source .venv/bin/activate          # prompt shows (.venv)
 - [2. Generate synthetic data](#2-generate-synthetic-data)
   - [Emit modes](#emit-modes)
   - [Inspect what was generated](#inspect-what-was-generated)
-- [3. Extract from a real (or synthetic) source](#3-extract-from-a-real-or-synthetic-source)
-- [4. Run the tests](#4-run-the-tests)
-- [5. Format and lint](#5-format-and-lint)
-- [6. Regenerate the ER diagram](#6-regenerate-the-er-diagram)
-- [7. Validate the bundle (no deploy)](#7-validate-the-bundle-no-deploy)
-- [8. Clean local artefacts](#8-clean-local-artefacts)
+- [3. Run the tests](#3-run-the-tests)
+- [4. Format and lint](#4-format-and-lint)
+- [5. Regenerate the ER diagram](#5-regenerate-the-er-diagram)
+- [6. Validate the bundle (no deploy)](#6-validate-the-bundle-no-deploy)
+- [7. Clean local artefacts](#7-clean-local-artefacts)
 - [The inner loop, condensed](#the-inner-loop-condensed)
 
 ---
@@ -69,23 +68,25 @@ pip install -e .
 ```bash
 make generate
 # direct:
-python -m vic_suburbs.generator.seed   --config config/synthetic/seed_config.yaml
+python -m vic_suburbs.generator.seed   --config config/synthetic/seed_config.yaml --landing .local/landing
 python -m vic_suburbs.generator.emit   --mode mixed --landing .local/landing
 ```
 
-- **`seed`** builds the universe **once** — a deterministic ~50-year back-cast for all
-  entities, stored in `synthetic_universe.db` (SQLite). Re-run only when you change
-  `seed_config.yaml` or the suburb spine.
-- **`emit`** writes landing CSVs from that universe. Run it as often as you like.
+- **`seed`** builds the universe and writes the **full 50-year baseline** to landing in one step.
+  It stores the universe in `synthetic_universe.db` (SQLite) and re-derives it deterministically,
+  so re-run it whenever you change `seed_config.yaml` or the suburb spine.
+- **`emit`** writes an **incremental** batch from that universe (it never re-writes the baseline).
+  Run it as often as you like.
 
 ### Emit modes
 
 ```bash
-python -m vic_suburbs.generator.emit --mode history --landing .local/landing   # full back-cast (first load / backfill)
-python -m vic_suburbs.generator.emit --mode new     --landing .local/landing   # next-period net-new inserts
+python -m vic_suburbs.generator.emit --mode new     --landing .local/landing   # next-year net-new inserts
 python -m vic_suburbs.generator.emit --mode update  --landing .local/landing   # mutations → SCD2 / restatements
-python -m vic_suburbs.generator.emit --mode mixed   --landing .local/landing   # all three (the realistic default)
+python -m vic_suburbs.generator.emit --mode mixed   --landing .local/landing   # new + update (the default)
 ```
+
+The full 50-year baseline comes from `seed` (above); `emit` only adds increments on top of it.
 
 Files land at `.local/landing/<entity>/<entity>_<batch8>[_part].csv`, stamped with
 `batch_id`, `source_system=SYNTHETIC`, and a per-row `effective_ts` — exactly the shape Auto
@@ -106,19 +107,7 @@ for f in .local/landing/*/*.csv; do echo "$(tail -n +2 "$f" | wc -l)  $f"; done
 
 ---
 
-## 3. Extract from a real (or synthetic) source
-
-```bash
-python -m vic_suburbs.extract.run_extract property --landing .local/landing
-```
-
-The connector is chosen from `config/sources/<entity>.yaml`. The synthetic connector needs
-nothing; the DataVic (CKAN) connector reads public datasets with no key (set `DATAVIC_API_KEY`
-only for higher limits); the ABS connector is a stub to wire per dataflow.
-
----
-
-## 4. Run the tests
+## 3. Run the tests
 
 ```bash
 make test
@@ -132,12 +121,12 @@ pytest tests/unit --cov=vic_suburbs                  # with coverage
 
 The unit suite covers config loading, the DQ compiler, the transform helpers, and generator
 determinism (same seed ⇒ identical universe; age bands always sum to the total). The
-integration test exercises `conform_sal_code` + DQ-expression evaluation in a real
+integration test exercises the Silver dedup + DQ-expression evaluation in a real
 `SparkSession` and **auto-skips** if `pyspark`/Java aren't installed.
 
 ---
 
-## 5. Format and lint
+## 4. Format and lint
 
 ```bash
 make fmt            # auto-fix:  ruff check --fix . ; ruff format .
@@ -156,7 +145,7 @@ pre-commit run --all-files
 
 ---
 
-## 6. Regenerate the ER diagram
+## 5. Regenerate the ER diagram
 
 If you change the data model, regenerate the SVG embedded in the README and data-model doc:
 
@@ -171,7 +160,7 @@ directory.
 
 ---
 
-## 7. Validate the bundle (no deploy)
+## 6. Validate the bundle (no deploy)
 
 A safe offline-ish check that the bundle is well-formed (needs CLI auth, creates nothing):
 
@@ -183,7 +172,7 @@ databricks bundle validate -t dev
 
 ---
 
-## 8. Clean local artefacts
+## 7. Clean local artefacts
 
 ```bash
 make clean

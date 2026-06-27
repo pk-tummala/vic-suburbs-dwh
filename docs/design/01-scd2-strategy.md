@@ -30,8 +30,8 @@ SCD1 (overwrite) would corrupt the entire historical premise of the project.
 |---|---|---|
 | `02_silver` reference entities (suburb, lga) | **SCD2** | Slowly-changing geography/identity. |
 | `02_silver` measure feeds (demographics, property, crime, transport, education) | append, dedup-latest per (suburb, period) | Periodic snapshots; the *period* is the version. |
-| `03_gold.dim_suburb`, `dim_lga` | **SCD2** | Conformed historized dimensions. |
-| `03_gold.dim_year`, `dim_geo_quality` | Type 1 | Stable. |
+| `03_gold.dim_suburb`, `dim_lga` | **SCD2** | Shared historized dimensions. |
+| `03_gold.dim_year` | Type 1 | Stable. |
 | `03_gold.fact_*` | insert/append, restatement rows | Facts are immutable events (see data-model §8). |
 
 ---
@@ -100,7 +100,7 @@ Rule: if changing the value should make *old facts keep the old value*, it's ver
 `APPLY CHANGES` needs a CDC-shaped source: one row per **observed state** of the key, with a monotonic `effective_ts`. We build it in Silver:
 
 1. Read Bronze for the entity (incremental).
-2. Conform to `sal_code`, type-cast, DQ-validate.
+2. Type-cast and DQ-validate (`sal_code` is already on every row).
 3. Deduplicate to one row per (key, effective period).
 4. Stamp `effective_ts` (the census/edition date the observation belongs to — **not** ingestion time, so history is anchored to *when it was true*, not *when we loaded it*).
 

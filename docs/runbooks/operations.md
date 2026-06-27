@@ -12,7 +12,7 @@ Three scripts:
 | --- | --- | --- |
 | [`operations/verify_pipeline.sh`](../../operations/verify_pipeline.sh) | Pass/fail gate across the whole medallion | non-zero if any check **FAIL**s |
 | [`operations/diagnose_fact_joins.sh`](../../operations/diagnose_fact_joins.sh) | Deep-dive into fact↔dimension joins | informational (always 0) |
-| [`operations/diagnose_silver.sh`](../../operations/diagnose_silver.sh) | Explain an empty Silver measure (localize → crosswalk → DQ → ordering) | informational (always 0) |
+| [`operations/diagnose_silver.sh`](../../operations/diagnose_silver.sh) | Explain an empty Silver measure (localize → key health → DQ → ordering) | informational (always 0) |
 
 ## Prerequisites
 
@@ -36,6 +36,32 @@ There are two ways to run the pipeline, and they differ in what they stream to t
 Use `run-pipeline` while iterating on transforms to watch the flows live; use `run` for an
 end-to-end build, then `make verify`. (Bootstrap is a *job*, `vic_suburbs_bootstrap_job`, with no DLT
 flows of its own, so it already streams task progress — there is no separate flow stream for it.)
+
+## Loading new data after the first run
+
+The first `make load` writes the full 50-year baseline. After that, you add **incremental** batches
+with `make emit` — you do **not** re-seed. Pick the mode for what you want to land:
+
+| Goal | Mode | Sequence |
+| --- | --- | --- |
+| The next year of data | `new` | `make emit MODE=new ENV=dev` → `make upload ENV=dev` → `make run ENV=dev` |
+| Corrections / SCD2 changes | `update` | `make emit MODE=update ENV=dev` → `make upload ENV=dev` → `make run ENV=dev` |
+| Both at once (default) | `mixed` | `make emit ENV=dev` → `make upload ENV=dev` → `make run ENV=dev` |
+
+```bash
+make emit MODE=new ENV=dev     # write an incremental batch locally into .local/landing
+make upload ENV=dev            # copy that batch into the landing Volume
+make run ENV=dev               # ingest + transform — only the new files are processed
+make verify ENV=dev            # confirm the new rows flowed through every layer
+```
+
+Notes:
+
+- `MODE=mixed` is the default, so `make emit ENV=dev` (no `MODE`) emits `new` + `update`.
+- Use `make emit` + `make upload` for day-2 increments — **not** `make load`, because `make load`
+  re-seeds the full 50-year baseline. `make load` is for the *first* load (or a deliberate reset).
+- Auto Loader only picks up files it hasn't seen, so re-running `make run` with no new files is a
+  clean **`NO_OP`** (zero new rows) — proof the pipeline is idempotent.
 
 ## When to run
 
@@ -108,27 +134,24 @@ four grids that narrow the cause from the outside in:
 
 1. **Bronze → Silver localization** — `entity, bronze, silver, dropped, drop_pct` for every measure.
    Confirms which layer the rows vanish at, and whether it is one entity or all of them.
-2. **Crosswalk resolution** — `crosswalk_rows, ref_changes_rows, bronze_keys, resolved, name_only,
-   postcode_only`. This reconstructs the `conform_sal_code` join (suburb **and** postcode) so you can
-   tell a *join miss* from a *DQ drop*:
-   - `resolved ≈ bronze_keys` → the join is healthy; the loss is downstream (go to grid 3).
-   - `resolved = 0` but `name_only > 0` → names match, **postcodes** don't.
-   - `resolved = 0` but `postcode_only > 0` → postcodes match, **names** don't (normalization gap).
-   - `crosswalk_rows = 0` → the crosswalk itself is empty; inspect `suburb_ref_changes`.
-3. **DQ rules for the entity** — prints `config/dq_rules/<entity>.yaml`. If grid 2 shows the join is
-   healthy but Silver is still empty, a **`WARN` expectation is dropping every row**. The classic
-   offender is a `regex_match` rule whose pattern silently matches nothing — e.g. a metacharacter
-   that was stripped before reaching Spark, so `^3\d{3}$` degrades to `^3d{3}$` and no postcode ever
-   matches. A `WARN` drop does not fail the run, so 100% of rows can disappear while the job stays
-   green. `value_range` bounds that exclude the real data are the other common case.
-4. **Flow ordering** — the `flow_progress` event-log sequence for `suburb_ref_changes`,
-   `suburb_crosswalk`, and the measure. Confirms the crosswalk finished **before** the measure ran;
-   an out-of-order read would localize here.
+2. **Key health** — `bronze_rows, null_sal_code, duplicated_grains`. Measures carry `sal_code`
+   directly, so rows only reduce in two ways:
+   - `null_sal_code > 0` → those rows are dropped by the FATAL `sal_code_not_null` rule.
+   - `duplicated_grains > 0` → repeated `(sal_code, period)` rows are collapsed to one each by the
+     latest-wins dedup (expected, not a loss).
+   - If both are ~0 but Silver is still empty, the loss is a DQ drop downstream (go to grid 3).
+3. **DQ rules for the entity** — prints `config/dq_rules/<entity>.yaml`. If grid 2 shows the keys
+   are healthy but Silver is still empty, a **`WARN` expectation is dropping every row**. The classic
+   offender is a `regex_match` rule whose pattern silently matches nothing (e.g. a metacharacter
+   stripped before it reaches Spark), or a `value_range` bound that excludes the actual values. A `WARN`
+   drop does not fail the run, so 100% of rows can disappear while the job stays green.
+4. **Flow ordering** — the `flow_progress` event-log sequence for the entity's `raw_<entity>`
+   Bronze table and its Silver measure, confirming Bronze finished **before** Silver ran; an
+   out-of-order read would localize here.
 
-Read the grids top-down: localization tells you *where*, the crosswalk tells you *join vs DQ*, the
-rules tell you *which rule*, and the ordering rules out a dependency race. The `resolved` count uses
-`upper(trim(...))` normalization; the live pipeline also collapses internal whitespace, so expect a
-tiny discrepancy on messy names — it does not affect the diagnosis.
+Read the grids top-down: localization tells you *where* the rows vanish, key health tells you
+whether it's a NULL-key drop or just dedup, the rules tell you *which* DQ rule, and the ordering
+rules out a dependency race.
 
 ## Troubleshooting playbook
 

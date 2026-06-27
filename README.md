@@ -27,7 +27,7 @@
 
 ## 📌 The Problem
 
-Victoria has hundreds of suburbs, and the questions people ask about them — *where should I buy, where's safe, where are the good schools, where will prices grow* — are answerable from public data that already exists. The catch is that the answers live in **a dozen disconnected sources** (census tables, property registers, crime statistics, transport feeds, school records), each with its own geography, cadence, and quirks, and almost none of it stitched together across time.
+Victoria has hundreds of suburbs, and the questions people ask about them — *where should I buy, where's safe, where are the good schools, where will prices grow* — span five very different subject areas — demographics, property, crime, transport, and schooling — each with its own geography, cadence, and quirks, and rarely stitched together across time. This project models all of them as one connected warehouse from a self-contained **synthetic universe**: a deterministic generator that produces ~50 years of plausible history for every suburb, so the full set of engineering patterns can be shown end-to-end with no external data setup.
 
 This warehouse answers six questions about **every suburb in Victoria, across as much history as the data allows**:
 
@@ -52,15 +52,15 @@ Every architectural choice maps to a real-world data-engineering pattern:
 |---|---|---|
 | 🥉🥈🥇 **Medallion Architecture** | Bronze (raw) → Silver (cleansed, SCD2) → Gold (star schema) | Industry-standard separation of concerns for analytical data |
 | 🌊 **Declarative Pipelines (DLT)** | Lakeflow Declarative Pipelines define tables, not imperative DML | The platform handles ordering, retries, incrementality, and metrics |
-| 📚 **Native SCD Type 2** | `APPLY CHANGES INTO … STORED AS SCD TYPE 2` on conformed dims | Full history without hand-written, bug-prone MERGE logic |
+| 📚 **Native SCD Type 2** | `APPLY CHANGES INTO … STORED AS SCD TYPE 2` on the SCD2 dims | Full history without hand-written, bug-prone MERGE logic |
 | ♻️ **Idempotent & Incremental** | Auto Loader + streaming tables process only new files/rows | Re-runs are safe; failed runs simply resume |
 | 🚫 **NO_OP Detection** | A run with no new data is logged as a clean no-op | Proves the pipeline is *truly* idempotent, not "usually fine" |
 | 🆔 **End-to-End Traceability** | One `batch_id` flows landing → Bronze → Silver → Gold | Join any Gold row back to the exact source file in seconds |
-| 🧭 **Canonical Geography** | Every source conformed to the ABS `sal_code` via a crosswalk | The hard part of multi-source suburb data, solved once |
+| 🔑 **Stable Surrogate Keys** | `xxhash64(business_key, __START_AT)` on every SCD2 dim; facts reuse the same formula | Fact↔dimension keys line up across all of history |
 | ⚙️ **Config / Metadata-Driven** | Entities, schemas, and DQ rules live in YAML | Add a subject area by config, not by new pipeline code |
 | 🔍 **Lineage & Observability** | Unity Catalog system tables + a thin run-log schema | Every run, every DQ result, every column's origin is auditable |
 | 🔐 **Least-Privilege RBAC** | Group-based Unity Catalog grants per layer | Analysts see serving layers only; ingest can't write Gold |
-| 🧪 **Synthetic Universe** | Deterministic generator fills 50-year history gaps | Complete history + provable SCD2/CDC mechanics, always flagged |
+| 🧪 **Synthetic Universe** | Deterministic, seeded generator produces 50 years for every suburb | Complete history, fully reproducible, exercises the SCD2/CDC mechanics for real |
 | 📦 **One-Bundle Deployment** | Databricks Asset Bundle → `dev`/`qa`/`prod` from one definition | No "works in dev, breaks in prod" drift |
 
 ---
@@ -73,10 +73,10 @@ Every architectural choice maps to a real-world data-engineering pattern:
 
 The entire warehouse lives on **one platform**: Databricks, governed by Unity Catalog, with Delta Lake as the storage format throughout. Five stages, left to right:
 
-- **Source** — public APIs (ABS census/geography, DataVic property, crime, transport, schools) plus a synthetic universe for entities or eras where reliable public data doesn't exist.
-- **Land** — extracted and synthetic files arrive in a Unity Catalog **Volume**, each stamped with a `batch_id`.
+- **Source** — a config-driven **synthetic universe** that models each subject area (demographics, property, crime, transport, schooling) across ~50 years of history.
+- **Land** — the generated files arrive in a Unity Catalog **Volume**, each stamped with a `batch_id`.
 - **Ingest** — **Auto Loader** incrementally picks up new files into **Bronze** (raw, append-only), processing each file exactly once.
-- **Transform** — a **Lakeflow Declarative Pipeline** runs Bronze → Silver (type, validate, conform to `sal_code`, dedup, build CDC feeds) → Gold (SCD2 dimensions via `APPLY CHANGES`, plus a fact per subject), all defined declaratively and driven by config.
+- **Transform** — a **Lakeflow Declarative Pipeline** runs Bronze → Silver (type, validate, dedup, build CDC feeds) → Gold (SCD2 dimensions via `APPLY CHANGES`, plus a fact per subject), all defined declaratively and driven by config.
 - **Serve** — curated, question-shaped views feed **AI/BI Dashboards** answering the six questions.
 
 ### Why a single platform?
@@ -91,25 +91,25 @@ A multi-cloud split buys you nothing here and costs you lineage. Keeping ingesti
   <img src="docs/architecture/02-operational-data-flow.svg" alt="Operational Data Flow" width="100%">
 </div>
 
-The diagram walks all ten steps from `emit.py` on a developer laptop to an analyst opening a dashboard. The **transform contract** (one identical shape for every Bronze→Silver→Gold flow) is the architectural centerpiece — every table in the warehouse is produced the same declarative way, which is what makes the whole pipeline idempotent and extensible. Full detail in [`docs/design/04-pipeline-pattern.md`](docs/design/04-pipeline-pattern.md).
+The diagram walks all ten steps from `seed.py`/`emit.py` on a developer laptop to an analyst opening a dashboard. The **transform contract** (one identical shape for every Bronze→Silver→Gold flow) is the architectural centerpiece — every table in the warehouse is produced the same declarative way, which is what makes the whole pipeline idempotent and extensible. Full detail in [`docs/design/04-pipeline-pattern.md`](docs/design/04-pipeline-pattern.md).
 
 ---
 
 ## 🗂️ Data Model — Gold-Layer Fact Constellation
 
-The Gold layer is a **Kimball fact constellation**: one fact per subject area, all sharing the same conformed dimensions. This keeps each fact at its natural grain while letting a single suburb-and-year join answer cross-cutting questions.
+The Gold layer is a **Kimball fact constellation**: one fact per subject area, all sharing the same dimensions. This keeps each fact at its natural grain while letting a single suburb-and-year join answer cross-cutting questions.
 
 <div align="center">
   <img src="docs/data-model/er-fact-constellation.svg" alt="Fact constellation ER diagram" width="100%">
 </div>
 
-> The five facts share the same conformed dimensions; `dim_geo_quality` (real vs. synthetic flag) and `bridge_suburb_ancestry` also attach to each fact and are shown in full in the [data dictionary](docs/data-model/data-dictionary.md). Facts map to questions: demographics → **Q1**, property → **Q5/Q6**, crime → **Q3**, transport → **Q2**, education → **Q4**.
+> The five facts share three dimensions — `dim_suburb` and `dim_lga` (both SCD Type 2) and `dim_year` (Type 1) — defined in full in the [data dictionary](docs/data-model/data-dictionary.md). Facts map to questions: demographics → **Q1**, property → **Q5/Q6**, crime → **Q3**, transport → **Q2**, education → **Q4**.
 
 **Grain**: one row per suburb × period (year), per subject. Facts are append/restatement-only — a corrected period is a flagged restatement row, never an in-place edit.
 
-**SCD2 placement**: only where attributes genuinely change. Suburbs get renamed, reassigned to new LGAs, and re-bounded by new ABS geography editions; LGAs amalgamate. Those are SCD2. Year and geo-quality are stable Type 1.
+**SCD2 placement**: only where attributes genuinely change. Suburbs get renamed, reassigned to new LGAs, and re-bounded by new geography editions; LGAs amalgamate. Those are SCD2. Year is a stable Type 1 dimension.
 
-**Canonical key**: every source is conformed to the ABS State Suburb code (`sal_code`). Free-text sources (property, crime, transport, schools) carry only `suburb` + `postcode`, so a crosswalk built from the suburb dimension resolves them — the single most common real-world defect, handled as a first-class DQ rule.
+**Suburb key**: every fact is keyed by the State Suburb code (`sal_code`). The generator stamps `sal_code` directly onto every measure row, so facts join the suburb dimension by a stable key — no fragile name-matching step.
 
 Full column-by-column definitions, grain, and SCD2 decisions: [`docs/data-model/data-dictionary.md`](docs/data-model/data-dictionary.md).
 
@@ -117,9 +117,11 @@ Full column-by-column definitions, grain, and SCD2 decisions: [`docs/data-model/
 
 ## 📊 Live Dashboard
 
-The six reporting views are served through **Databricks AI/BI Dashboards** — no external hosting, no separate infrastructure. The dashboard reads only the `04_reporting` schema and is reachable by anyone holding `role_analyst`, with each tab answering one question with a chart chosen for its data shape: a sorted bar (most expensive), a 50-year trend line (population growth), a ranked table (low crime / best schools), a connectivity heatmap (transport), and a bubble scatter (affordable + growth potential).
+The six reporting views are served through **Databricks AI/BI Dashboards** — no external hosting, no separate infrastructure. The dashboard reads only the `04_reporting` schema and is reachable by anyone holding `role_analyst`, with each tab answering one question with a chart matched to its shape: trend lines for change over time (population, crime, house prices), stacked bars for transport mix by mode and the all-round leaderboard, and scatters for school quality and value-for-money.
 
-> 🖼️ **Dashboard showcase graphic** (`docs/architecture/03-dashboard-showcase.svg`) is added once the first dashboards are generated against real Gold data — a one-per-question collage in the same visual language as the architecture diagrams.
+<div align="center">
+  <img src="docs/architecture/03-dashboard-showcase.png" alt="AI/BI dashboard showcase — one chart per suburb question, plus a composite leaderboard" width="100%">
+</div>
 
 ---
 
@@ -152,7 +154,7 @@ The six reporting views are served through **Databricks AI/BI Dashboards** — n
 
 ### Architecture Patterns
 
-Medallion (Bronze/Silver/Gold) · Declarative pipelines · Native SCD Type 2 · Fact constellation · Point-in-time dimension lookups · Auto Loader incremental loading · Idempotent flows with NO_OP detection · Canonical-key conforming · Config-as-code · Least-privilege RBAC · Bundle-based deployment
+Medallion (Bronze/Silver/Gold) · Declarative pipelines · Native SCD Type 2 · Fact constellation · Point-in-time dimension lookups · Auto Loader incremental loading · Idempotent flows with NO_OP detection · Stable suburb keys · Config-as-code · Least-privilege RBAC · Bundle-based deployment
 
 ---
 
@@ -166,11 +168,10 @@ vic-suburbs-dwh/
 ├── config/                    # Metadata-driven config (behaviour lives here)
 │   ├── entities.yaml          #   registers every entity
 │   ├── sources/ schemas/ dq_rules/ pipeline/   # per-entity + per-env
-│   └── synthetic/             #   seed config, mutation rules, real suburb spine
+│   └── synthetic/             #   seed config, mutation rules, suburb spine (25 VIC suburbs)
 ├── src/vic_suburbs/
 │   ├── common/                # config, lineage, DQ compiler, transforms, run log
-│   ├── generator/             # synthetic universe: seed.py (build) + emit.py (emit)
-│   ├── extract/               # connectors: CKAN (DataVic), ABS, synthetic
+│   ├── generator/             # synthetic universe: seed.py (build + full baseline) + emit.py (increments)
 │   ├── pipeline/              # bronze / silver / gold builders + dlt_entry
 │   └── orchestration/         # pre/post run-log tasks
 ├── bootstrap/                 # UC bootstrap notebook + catalog/schema/grants + teardown SQL
@@ -206,8 +207,6 @@ databricks auth login --host https://<your-workspace>.cloud.databricks.com      
 databricks current-user me                                                                    # verify
 ```
 
-> **No data subscription or paid API key is needed.** The public sources are free: ABS APIs require no key, and DataVic's public datasets are readable without one. A DataVic API key is **free and optional** — register on the portal only if you need higher rate limits or a restricted dataset. The synthetic generator needs nothing at all. Set `DATAVIC_API_KEY` only if you have one; the extractor works without it.
-
 Keep the repo on the Linux filesystem (`~/projects/...`), not `/mnt/c/...`, for fast pip/git/test runs.
 
 ---
@@ -222,9 +221,10 @@ git clone https://github.com/<your-username>/vic-suburbs-dwh.git
 cd vic-suburbs-dwh
 make install                 # ── or: pip install -r requirements-dev.txt && pip install -e .
 
-# 2. Build the synthetic universe + emit ~50 years of landing files (local)
-make generate                # ── or: python -m vic_suburbs.generator.seed
-                             #        python -m vic_suburbs.generator.emit --mode mixed
+# 2. Build the synthetic universe + write landing files (local)
+make generate                # seed = full 50-year baseline; emit = one incremental batch
+                             # ── or: python -m vic_suburbs.generator.seed  --landing .local/landing
+                             #        python -m vic_suburbs.generator.emit --mode mixed --landing .local/landing
 
 # 3. Prove the core works
 make test                    # ── or: pytest tests/unit
@@ -253,8 +253,6 @@ make run ENV=dev             # ── or: databricks bundle run vic_suburbs_job 
 
 That's it — a fully populated fact constellation answering all six questions. Step 5 replaces every piece of manual setup; you never hand-create groups, the catalog, or grants.
 
-> This quickstart runs on the built-in **synthetic** universe (zero external setup). The dashboard the POC ultimately answers should use **real** Victorian open data — what exists, how far back, and how to wire each source is in [`docs/runbooks/data-sources.md`](docs/runbooks/data-sources.md).
-
 ### Re-running with no new data
 
 ```bash
@@ -275,7 +273,6 @@ The run is logged as `NO_OP` with zero new rows — proving the pipeline is idem
 | Validate | `make validate ENV=dev` | `databricks bundle validate -t dev` |
 | Deploy | `make deploy ENV=dev` | `databricks bundle deploy -t dev` |
 | **Load data → Volume** | `make load ENV=dev` | `make generate`, then `databricks fs cp -r .local/landing/<e> dbfs:/Volumes/…/files/<e>` |
-| Extract real source | `make extract ENTITY=property` | `python -m vic_suburbs.extract.run_extract property` (once its source is pinned) |
 | Run | `make run ENV=dev` | `databricks bundle run vic_suburbs_job -t dev` |
 | **Destroy env** | `make destroy ENV=dev` | `./deployment/destroy.sh --env dev` |
 
@@ -320,7 +317,7 @@ databricks bundle run vic_suburbs_pipeline -t dev         # pipeline only (itera
 ./tools/dbsql.sh "SELECT * FROM vic_suburbs_dev.05_metadata.dq_results ORDER BY evaluated_at DESC LIMIT 20"
 ```
 
-Emit modes (passed through by `make generate` / `emit`): `history` (full back-cast), `new` (next-period net-new inserts), `update` (mutations → SCD2/CDC changes), `mixed` (the realistic default). Entities with a live connector load individually with `python -m vic_suburbs.extract.run_extract <entity>` once their `resource_id` is pinned in `config/sources/<entity>.yaml`; until then the synthetic batch covers every entity.
+The full 50-year baseline is written by **`make seed`**. **`make emit`** then adds an incremental batch in one of three modes: `new` (the next year of inserts), `update` (mutations that become SCD2/CDC changes), or `mixed` (new + update, the default). `make generate` runs seed then emit; `make load` generates and uploads in one step.
 
 ---
 
@@ -363,15 +360,15 @@ A watermark table is load-bearing, easy to corrupt, and another thing to back up
 
 ### 4. Why a fact constellation instead of one wide fact?
 
-The five subjects have genuinely different grains and cadences (census is 5-yearly; property is quarterly). Forcing them into one table means a sparse, awkward super-grain. One fact per subject, all sharing conformed dimensions, keeps each at its natural grain — and because the dimensions are conformed, `vw_suburb_scorecard` still answers cross-cutting questions with a single suburb-and-year join.
+The five subjects have genuinely different grains and cadences (census is 5-yearly; property is quarterly). Forcing them into one table means a sparse, awkward super-grain. One fact per subject, all sharing the same dimensions, keeps each at its natural grain — and because the dimensions are shared, a single suburb-and-year join still answers cross-cutting questions across subjects.
 
-### 5. Why a canonical `sal_code` with a crosswalk?
+### 5. Why a single suburb key (`sal_code`)?
 
-Suburb data's hardest problem is that every source names places differently — free-text suburb strings, postcodes, ABS codes. Picking the ABS State Suburb code as the one true key, and conforming every free-text source to it via a crosswalk built from the suburb dimension, makes joins trustworthy. Unmapped rows are caught by a first-class `crosswalk_resolved` DQ rule and quarantined, not silently lost.
+Picking one stable identifier — the State Suburb code (`sal_code`) — as the key for every suburb means joins stay trustworthy and a suburb is still the same entity after it's renamed. The generator stamps `sal_code` directly onto every measure row, so facts join the suburb dimension by that key with no name-matching to get wrong, and a `not_null` DQ rule on `sal_code` guards the join at the door.
 
-### 6. Why a synthetic universe at all?
+### 6. Why a synthetic universe?
 
-Small-area public data rarely reaches 50 years, and some attributes simply aren't published. A deterministic generator (seeded → reproducible) fills the gaps so the warehouse is complete and the SCD2/CDC mechanics are genuinely exercised. Real data always supersedes synthetic, and every synthetic row is flagged via `source_system`, so consumers can filter or shade it.
+It makes the whole project self-contained and reproducible. A deterministic, seeded generator produces a complete 50-year history for every suburb, so the warehouse is always full, the SCD2/CDC mechanics are genuinely exercised, and anyone can rebuild the exact same data from scratch with no API keys, accounts, or external setup. Every row is stamped `source_system = SYNTHETIC`.
 
 ### 7. Why config / metadata-driven pipelines?
 
@@ -391,7 +388,7 @@ pytest tests/integration -v     # local-Spark smoke test (auto-skips if pyspark/
 make lint                       # ruff (check + format), matching CI
 ```
 
-The unit suite covers the load-bearing pure logic: config loading, the DQ rule compiler (YAML → Spark SQL), the type/conform helpers, and **generator determinism** (same seed ⇒ identical universe, age bands always sum to the population total). The integration test exercises the Silver conform + DQ-expression evaluation in a real Spark session. CI runs lint + unit tests on every PR and `databricks bundle validate` against `dev`.
+The unit suite covers the load-bearing pure logic: config loading, the DQ rule compiler (YAML → Spark SQL), the type/dedup helpers, and **generator determinism** (same seed ⇒ identical universe, age bands always sum to the population total). The integration test exercises the Silver dedup + DQ-expression evaluation in a real Spark session. CI runs lint + unit tests on every PR and `databricks bundle validate` against `dev`.
 
 ### Linting (pre-commit)
 
@@ -415,7 +412,7 @@ The ruff version in `.pre-commit-config.yaml` is kept equal to the pin in `requi
 | [`docs/design/00-overview-and-architecture.md`](docs/design/00-overview-and-architecture.md) | The big picture and catalog topology |
 | [`docs/design/01-scd2-strategy.md`](docs/design/01-scd2-strategy.md) | Native SCD2 with the `APPLY CHANGES` template |
 | [`docs/design/02-incremental-loading-strategy.md`](docs/design/02-incremental-loading-strategy.md) | Auto Loader, idempotency, NO_OP, UTC convention |
-| [`docs/design/03-data-sourcing-and-synthetic-universe.md`](docs/design/03-data-sourcing-and-synthetic-universe.md) | Real sources, crosswalk, synthetic strategy |
+| [`docs/design/03-data-sourcing-and-synthetic-universe.md`](docs/design/03-data-sourcing-and-synthetic-universe.md) | The synthetic universe: entities, back-cast model, mutations |
 | [`docs/design/04-pipeline-pattern.md`](docs/design/04-pipeline-pattern.md) | **★ The transform contract every flow implements. Read this first.** |
 | [`docs/design/05-data-quality-spec.md`](docs/design/05-data-quality-spec.md) | YAML DQ grammar, severities, quarantine |
 | [`docs/design/06-observability-and-lineage-spec.md`](docs/design/06-observability-and-lineage-spec.md) | Run log, DQ results, system-table lineage, alerting |
@@ -423,7 +420,6 @@ The ruff version in `.pre-commit-config.yaml` is kept equal to the pin in `requi
 | [`docs/runbooks/intellij-wsl-setup.md`](docs/runbooks/intellij-wsl-setup.md) | Databricks CLI install, IntelliJ+WSL terminal, authentication |
 | [`docs/runbooks/repository-tour.md`](docs/runbooks/repository-tour.md) | Annotated walk through the repo |
 | [`docs/runbooks/local-development.md`](docs/runbooks/local-development.md) | Local dev, generator, tests |
-| [`docs/runbooks/data-sources.md`](docs/runbooks/data-sources.md) | Synthetic vs real data + end-to-end load paths for each |
 | [`docs/runbooks/deployment-guide.md`](docs/runbooks/deployment-guide.md) | Step-by-step deployment + teardown |
 
 ---
@@ -432,9 +428,7 @@ The ruff version in `.pre-commit-config.yaml` is kept equal to the pin in `requi
 
 This POC scopes down to be demonstrable end-to-end. Extensions worth discussing:
 
-- [ ] **AI/BI dashboard** wired over the six reporting views, plus the showcase graphic
-- [ ] **Live ABS connector** — SDMX query per dataflow (currently a stub; synthetic path is live)
-- [ ] **Operations & reprocessing runbooks** authored against the first real pipeline run
+- [ ] **Operations & reprocessing runbooks** expanded against more pipeline runs
 - [ ] **Lakehouse Monitoring** on Gold tables for drift/quality over time
 - [ ] **Great-Expectations-style** expanded DQ assertions beyond the current rule set
 - [ ] **dbt** as an alternative Gold modelling layer for comparison
@@ -460,7 +454,7 @@ If you're a recruiter, hiring manager, or fellow engineer who'd like to discuss 
 
 Licensed under the MIT License — see [LICENSE](LICENSE).
 
-The data generated by the synthetic universe is **entirely fictional**: suburb *identities* (name, postcode, LGA) are public reference facts, but every *metric* (population, price, crime, transport, schooling) is invented and flagged `source_system = SYNTHETIC`. No real records are used until the live ABS/DataVic connectors supply them.
+All data in this project is **entirely fictional**: both the suburb identities and every metric (population, price, crime, transport, schooling) are invented by the synthetic generator and stamped `source_system = SYNTHETIC`. No real records are used anywhere.
 
 ---
 
