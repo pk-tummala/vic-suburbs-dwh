@@ -18,7 +18,6 @@ ROW_LEVEL_TYPES = {
     "in_set",
     "value_range",
     "regex_match",
-    "crosswalk_resolved",
     "cross_field",
 }
 # Rule types evaluated over the whole batch (handled outside expectations).
@@ -29,7 +28,11 @@ VALID_SEVERITIES = {"WARN", "FATAL"}
 
 def _sql_literal(value: Any) -> str:
     if isinstance(value, str):
-        return "'" + value.replace("'", "''") + "'"
+        # Escape backslashes first, then single quotes. Spark's default string-literal parser
+        # treats backslash as an escape char, so an unescaped '\d' collapses to 'd' — which would
+        # silently break a RLIKE pattern like '^3\d{3}$' and drop every row. Doubling the backslash
+        # makes Spark see the intended metacharacter.
+        return "'" + value.replace("\\", "\\\\").replace("'", "''") + "'"
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
@@ -41,9 +44,6 @@ def rule_to_expr(rule: dict[str, Any]) -> str:
     col = rule.get("column")
 
     if rtype == "not_null":
-        return f"{col} IS NOT NULL"
-    if rtype == "crosswalk_resolved":
-        # after the crosswalk, an unresolved suburb leaves sal_code NULL
         return f"{col} IS NOT NULL"
     if rtype == "in_set":
         members = ", ".join(_sql_literal(v) for v in rule["values"])

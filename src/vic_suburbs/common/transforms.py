@@ -1,13 +1,12 @@
-"""Entity-agnostic Silver transforms: typing, suburb-name conforming, dedup.
+"""Entity-agnostic Silver transforms: typing and dedup.
 
 The PySpark-dependent functions import ``pyspark`` lazily so this module loads in a
-plain Python environment (tests, generator). The pure helpers — ``build_cast_plan`` and
-``normalize_suburb_name`` — are unit-testable without Spark.
+plain Python environment (tests, generator). The pure helper ``build_cast_plan`` is
+unit-testable without Spark.
 """
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 # ── Pure helpers (testable without Spark) ────────────────────────────────────
@@ -26,19 +25,6 @@ def build_cast_plan(schema: dict[str, Any]) -> list[tuple[str, str]]:
     return plan
 
 
-_WS = re.compile(r"\s+")
-
-
-def normalize_suburb_name(name: str | None) -> str:
-    """Normalise a free-text suburb name for crosswalk matching."""
-    if name is None:
-        return ""
-    n = _WS.sub(" ", name.strip()).upper()
-    # common source noise
-    n = n.replace(".", "").replace("’", "'")
-    return n
-
-
 # ── Spark transforms (imported lazily) ───────────────────────────────────────
 
 
@@ -48,23 +34,6 @@ def cast_to_schema(df, schema: dict[str, Any]):  # pragma: no cover
 
     plan = build_cast_plan(schema)
     return df.select(*[F.col(c).cast(t).alias(c) for c, t in plan])
-
-
-def conform_sal_code(df, crosswalk_df):  # pragma: no cover
-    """Resolve ``sal_code`` for free-text sources by joining a (norm_name, postcode) crosswalk.
-
-    Rows already carrying ``sal_code`` (e.g. ABS sources, synthetic spine) pass through.
-    Unresolved rows keep ``sal_code = NULL`` and are caught by the ``crosswalk_resolved`` DQ rule.
-    """
-    from pyspark.sql import functions as F  # noqa: N812
-
-    if "sal_code" in df.columns:
-        return df
-    norm = F.upper(F.trim(F.regexp_replace(F.col("suburb"), r"\s+", " ")))
-    joined = df.withColumn("_norm_suburb", norm).join(
-        crosswalk_df, on=["_norm_suburb", "postcode"], how="left"
-    )
-    return joined.drop("_norm_suburb")
 
 
 def dedup_latest(

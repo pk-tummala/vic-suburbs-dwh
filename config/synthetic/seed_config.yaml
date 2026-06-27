@@ -1,7 +1,7 @@
-# Controls the synthetic universe back-cast. Real recent anchors live in suburb_seed.csv;
+# Controls the synthetic universe back-cast. The present-day anchor values live in suburb_seed.csv;
 # this file says how to project history and how volatile each series is.
 seed: 42
-base_year: 2021          # anchor year (where seed values are treated as "real-ish")
+base_year: 2021          # anchor year: the present-day baseline the back-cast projects backward from
 history_start_year: 1971 # ~50 years of back-cast
 census_years_only: true  # demographics emitted on census cadence
 census_step: 5
@@ -12,5 +12,6 @@ growth:
   rent_cagr:       { mean: 0.035, sd: 0.012 }
   crime_drift:     { mean: -0.010, sd: 0.030 }   # slow decline w/ noise
   school_drift:    { mean: 0.002, sd: 0.010 }
+  income_cagr:     { mean: 0.030, sd: 0.006 }     # weekly household income, nominal
 
 noise_pct: 0.03          # per-year multiplicative noise

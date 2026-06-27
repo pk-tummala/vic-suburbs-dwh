@@ -1,4 +1,4 @@
-# Probabilities applied per emit --mode update, so SCD2/CDC has real changes to capture.
+# Probabilities applied per emit --mode update, so SCD2/CDC has changes to capture.
 seed: 42
 mutation_probabilities:
   suburb_lga_reassignment: 0.05   # amalgamation -> new dim_suburb version

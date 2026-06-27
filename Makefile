@@ -3,15 +3,16 @@
 
 ENV ?= dev
 LANDING ?= .local/landing
+MODE ?= mixed
 CONFIG_DIR ?= config
 CATALOG ?= vic_suburbs_$(ENV)
 VOLUME ?= dbfs:/Volumes/$(CATALOG)/00_landing/files
 ENTITY ?=
 
-.PHONY: help install fmt lint test seed emit generate extract er-diagram auth bootstrap validate deploy run upload load query verify diagnose destroy clean
+.PHONY: help install fmt lint test seed emit generate er-diagram dashboard auth bootstrap validate deploy run upload load query verify diagnose diagnose-silver run-pipeline destroy clean
 
 help:  ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 install:  ## Install dev dependencies
 	pip install -r requirements-dev.txt --break-system-packages
@@ -28,20 +29,20 @@ lint:  ## Lint code (ruff check + format check)
 test:  ## Run unit tests
 	pytest tests/unit
 
-seed:  ## Build the synthetic universe (one-time)
-	python -m vic_suburbs.generator.seed --config $(CONFIG_DIR)/synthetic/seed_config.yaml
+seed:  ## Build the synthetic universe + emit the full 50-year baseline
+	python -m vic_suburbs.generator.seed --config $(CONFIG_DIR)/synthetic/seed_config.yaml --landing $(LANDING)
 
-emit:  ## Emit a batch of synthetic landing files
-	python -m vic_suburbs.generator.emit --mode mixed --landing $(LANDING)
+emit:  ## Emit an incremental batch of landing files (MODE=new|update|mixed)
+	python -m vic_suburbs.generator.emit --mode $(MODE) --landing $(LANDING)
 
-generate: seed emit  ## Seed + emit in one step
+generate: seed emit  ## Full 50-year baseline + one incremental batch
 
-extract:  ## Extract ONE real source into local landing: make extract ENTITY=property
-	@test -n "$(ENTITY)" || { echo "Set ENTITY=<name>, e.g. make extract ENTITY=property (then 'make upload ENV=...')"; exit 1; }
-	python -m vic_suburbs.extract.run_extract $(ENTITY) --landing $(LANDING)
 
 er-diagram:  ## Regenerate the ER diagram SVG from tools/build-er-diagram.py
 	python3 tools/build-er-diagram.py
+
+dashboard:  ## Regenerate the AI/BI dashboard JSON from tools/build_dashboard.py
+	python3 tools/build_dashboard.py
 
 auth:  ## Authenticate the Databricks CLI (OAuth) — set HOST=https://<workspace-url>
 	databricks auth login --host $(HOST)
@@ -57,6 +58,9 @@ deploy:  ## Deploy the bundle to ENV
 
 run:  ## Run the pipeline job on ENV
 	databricks bundle run vic_suburbs_job -t $(ENV)
+
+run-pipeline:  ## Run ONLY the DLT pipeline (streams per-flow progress to console; skips run-log tasks)
+	databricks bundle run vic_suburbs_pipeline -t $(ENV)
 
 upload:  ## Upload local landing files into the ENV landing Volume
 	@ls -d $(LANDING)/*/ >/dev/null 2>&1 || { echo "No landing files in $(LANDING) — run 'make generate' first (or use 'make load')."; exit 1; }
@@ -78,6 +82,9 @@ verify:  ## Validate the built warehouse (run health, row flow, keys, joins, ser
 
 diagnose:  ## Explain fact<->dim joins (per-year resolution, orphans) for ENV [ENTITY=<name>]
 	bash operations/diagnose_fact_joins.sh $(ENV) $(ENTITY)
+
+diagnose-silver:  ## Explain an empty Silver measure (localize, key health, DQ, ordering) [ENTITY=<name>]
+	bash operations/diagnose_silver.sh $(ENV) $(ENTITY)
 
 destroy:  ## Tear down ALL deployed objects for ENV (pipeline, job, catalog+contents)
 	bash deployment/destroy.sh --env $(ENV)

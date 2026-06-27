@@ -13,8 +13,14 @@ def test_value_range_allows_null():
 
 
 def test_regex_quotes_pattern():
-    expr = dq.rule_to_expr({"type": "regex_match", "column": "postcode", "pattern": "^3\\d{3}$"})
-    assert "RLIKE '^3\\d{3}$'" in expr
+    # The backslash must be DOUBLED in the emitted SQL literal so Spark's string-literal parser
+    # preserves the '\d' metacharacter (single backslash collapses to 'd' and breaks the match).
+    expr = dq.rule_to_expr({"type": "regex_match", "column": "postcode", "pattern": r"^3\d{3}$"})
+    assert r"RLIKE '^3\\d{3}$'" in expr
+
+
+def test_sql_literal_escapes_backslash():
+    assert dq._sql_literal(r"^3\d{3}$") == r"'^3\\d{3}$'"
 
 
 def test_in_set_quotes_strings():
@@ -60,7 +66,7 @@ def test_escalation_rules_detected():
     rules = [
         {
             "name": "x",
-            "type": "crosswalk_resolved",
+            "type": "not_null",
             "column": "sal_code",
             "severity": "WARN",
             "fail_if_violation_pct_above": 20,
@@ -69,7 +75,7 @@ def test_escalation_rules_detected():
     assert dq.escalation_rules(rules)[0]["name"] == "x"
 
 
-def test_real_property_rules_compile(config_dir):
+def test_property_rules_compile(config_dir):
     from vic_suburbs.common import config
 
     rules = config.load_dq_rules("property", config_dir)
@@ -77,12 +83,6 @@ def test_real_property_rules_compile(config_dir):
     fatal = dq.build_expectation_exprs(rules, "FATAL")
     assert "sal_code_not_null" in fatal
     assert "median_price_sane" in warn
-
-
-def test_crosswalk_resolved_expr():
-    assert dq.rule_to_expr({"type": "crosswalk_resolved", "column": "sal_code"}) == (
-        "sal_code IS NOT NULL"
-    )
 
 
 def test_in_set_literal_handles_bool_and_number():

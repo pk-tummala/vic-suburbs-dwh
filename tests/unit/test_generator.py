@@ -31,17 +31,23 @@ def test_demographics_age_bands_sum_to_total(tmp_path):
     assert (band_sum == d["population_total"]).all()
 
 
-def test_emit_history_writes_all_entities(tmp_path):
+def test_emit_full_writes_all_entities(tmp_path):
+    import sqlite3
+
     db = str(tmp_path / "u.db")
     seed.build_universe(CONFIG, db)
     landing = tmp_path / "landing"
-    written = emit.emit("history", str(landing), db, MUT)
+    con = sqlite3.connect(db)
+    try:
+        written = emit.emit_full(con, landing, "fullbase0000")
+    finally:
+        con.close()
     entities = {p.parent.name for p in written}
     assert {"property", "demographics", "crime", "transport", "education", "suburb_ref"} <= entities
-    # property landing file has suburb+postcode (free-text source) but NOT sal_code
+    # measures are keyed by sal_code — no suburb/postcode columns
     prop_file = next(p for p in written if p.parent.name == "property")
     cols = pd.read_csv(prop_file).columns
-    assert "suburb" in cols and "postcode" in cols and "sal_code" not in cols
+    assert "sal_code" in cols and "suburb" not in cols and "postcode" not in cols
     assert "batch_id" in cols and "source_system" in cols and "effective_ts" in cols
 
 

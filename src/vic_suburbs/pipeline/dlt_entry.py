@@ -44,10 +44,9 @@ references = [e for e in entities if e["kind"] == "reference"]
 for e in entities:
     bronze.define_bronze(spark, e["name"], LANDING_VOLUME, CATALOG)
 
-# ── Silver: reference CDC feeds, crosswalk, then measures -> 02_silver ────────
+# ── Silver: reference CDC feeds, then measures -> 02_silver ──────────────────
 for e in references:
     silver.define_silver_changes(spark, e["name"], CATALOG)
-silver.define_suburb_crosswalk(spark, CATALOG)
 for e in measures:
     silver.define_silver_measure(spark, e["name"], CATALOG)
 

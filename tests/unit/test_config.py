@@ -16,7 +16,8 @@ def test_entities_registered(config_dir):
 
 def test_entity_config_merges(config_dir):
     cfg = config.load_entity_config("property", config_dir)
-    assert cfg["source"]["connector"] == "ckan"
+    assert cfg["source"]["landing_path"] == "property/"
+    assert cfg["source"]["source_system"] == "SYNTHETIC"
     assert cfg["schema"]["entity"] == "property"
     assert any(r["name"] == "sal_code_not_null" for r in cfg["dq_rules"])
 

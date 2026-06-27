@@ -15,8 +15,3 @@ def test_cast_plan_from_schema(config_dir):
 def test_cast_plan_rejects_unknown_type():
     with pytest.raises(ValueError):
         transforms.build_cast_plan({"columns": [{"name": "x", "type": "frobnicate"}]})
-
-
-def test_normalize_suburb_name():
-    assert transforms.normalize_suburb_name("  st   kilda ") == "ST KILDA"
-    assert transforms.normalize_suburb_name(None) == ""

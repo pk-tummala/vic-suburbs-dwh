@@ -61,7 +61,7 @@ s.append(
 )
 s.append(
     f'<text x="{W/2}" y="88" text-anchor="middle" font-size="15" fill="{MUTE}">'
-    f"One fact per subject area · conformed dimensions shared across all facts</text>"
+    f"One fact per subject area · dimensions shared across all facts</text>"
 )
 
 
@@ -223,7 +223,7 @@ for label, col in items:
 # bus key legend
 s.append(
     f'<text x="70" y="{ly+44}" font-size="12.5" fill="{MUTE}">'
-    f"\u25cf junction = foreign-key join into the conformed dimension\u2003·\u2003"
+    f"\u25cf junction = foreign-key join into the shared dimension\u2003·\u2003"
     f"lines crossing without a dot are not connected (data-bus convention)</text>"
 )
 

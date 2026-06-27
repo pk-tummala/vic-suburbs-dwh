@@ -1,0 +1,1143 @@
+{
+  "datasets": [
+    {
+      "name": "b781d400",
+      "displayName": "KPIs",
+      "query": "SELECT sal_code, lga_code, year FROM `04_reporting`.vw_q1_population_growth"
+    },
+    {
+      "name": "7a721646",
+      "displayName": "Q1 population growth",
+      "query": "SELECT suburb_name, lga_name, year, population_total FROM `04_reporting`.vw_q1_population_growth"
+    },
+    {
+      "name": "d411b49b",
+      "displayName": "Q3 crime over time",
+      "query": "SELECT suburb_name, lga_name, year, offence_count_total FROM `04_reporting`.vw_q3_low_crime"
+    },
+    {
+      "name": "b5088819",
+      "displayName": "Q6 house price over time",
+      "query": "SELECT suburb_name, lga_name, year, median_house_price FROM `04_reporting`.vw_q6_most_expensive"
+    },
+    {
+      "name": "e8c078a0",
+      "displayName": "Q2 transport connectivity",
+      "query": "SELECT suburb_name, lga_name, 'Train' AS mode, train_station_count AS stops FROM `04_reporting`.vw_q2_transport_connectivity UNION ALL SELECT suburb_name, lga_name, 'Tram', tram_stop_count FROM `04_reporting`.vw_q2_transport_connectivity UNION ALL SELECT suburb_name, lga_name, 'Bus', bus_stop_count FROM `04_reporting`.vw_q2_transport_connectivity"
+    },
+    {
+      "name": "6bbfae5a",
+      "displayName": "Q4 top schools",
+      "query": "WITH latest_pop AS (  SELECT suburb_name, population_total,         ROW_NUMBER() OVER (PARTITION BY suburb_name ORDER BY year DESC) AS rn  FROM `04_reporting`.vw_q1_population_growth) SELECT q.suburb_name, q.lga_name, q.govt_school_count, q.mean_icsea,        p.population_total FROM `04_reporting`.vw_q4_top_schools q LEFT JOIN latest_pop p ON p.suburb_name = q.suburb_name AND p.rn = 1"
+    },
+    {
+      "name": "99faf19a",
+      "displayName": "Q5 affordable + growth",
+      "query": "WITH latest_pop AS (  SELECT suburb_name, population_total,         ROW_NUMBER() OVER (PARTITION BY suburb_name ORDER BY year DESC) AS rn  FROM `04_reporting`.vw_q1_population_growth) SELECT v.suburb_name, v.lga_name, v.current_median, v.cagr_pct,        p.population_total FROM `04_reporting`.vw_q5_affordable_growth v LEFT JOIN latest_pop p ON p.suburb_name = v.suburb_name AND p.rn = 1"
+    },
+    {
+      "name": "5579cea1",
+      "displayName": "Best all-round value",
+      "query": "WITH crime AS (  SELECT suburb_name, offence_count_total,         ROW_NUMBER() OVER (PARTITION BY suburb_name ORDER BY year DESC) AS rn  FROM `04_reporting`.vw_q3_low_crime), price AS (  SELECT suburb_name, median_house_price,         ROW_NUMBER() OVER (PARTITION BY suburb_name ORDER BY year DESC) AS rn  FROM `04_reporting`.vw_q6_most_expensive), m AS (  SELECT sch.suburb_name, sch.lga_name,         c.offence_count_total AS crime, sch.mean_icsea AS icsea,         t.connectivity_index AS transit, p.median_house_price AS price  FROM `04_reporting`.vw_q4_top_schools sch  LEFT JOIN crime c ON c.suburb_name = sch.suburb_name AND c.rn = 1  LEFT JOIN `04_reporting`.vw_q2_transport_connectivity t       ON t.suburb_name = sch.suburb_name  LEFT JOIN price p ON p.suburb_name = sch.suburb_name AND p.rn = 1), n AS (  SELECT suburb_name, lga_name,    ROUND(25*(1-(crime-MIN(crime) OVER())             /NULLIF(MAX(crime) OVER()-MIN(crime) OVER(),0)), 1) AS s_safety,    ROUND(25*((icsea-MIN(icsea) OVER())             /NULLIF(MAX(icsea) OVER()-MIN(icsea) OVER(),0)), 1) AS s_schools,    ROUND(25*((transit-MIN(transit) OVER())             /NULLIF(MAX(transit) OVER()-MIN(transit) OVER(),0)), 1) AS s_transit,    ROUND(25*(1-(price-MIN(price) OVER())             /NULLIF(MAX(price) OVER()-MIN(price) OVER(),0)), 1) AS s_afford  FROM m) SELECT suburb_name, lga_name, 'Safety (low crime)' AS factor, s_safety  AS score FROM n UNION ALL SELECT suburb_name, lga_name, 'Schools (ICSEA)',    s_schools FROM n UNION ALL SELECT suburb_name, lga_name, 'Transit',            s_transit FROM n UNION ALL SELECT suburb_name, lga_name, 'Affordability',      s_afford  FROM n"
+    }
+  ],
+  "pages": [
+    {
+      "name": "f68abf35",
+      "displayName": "Victoria Suburbs Profiler",
+      "layout": [
+        {
+          "widget": {
+            "name": "4ccdcbc7",
+            "textbox_spec": "# \ud83c\udfd9\ufe0f Victoria Suburbs Profiler"
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b10484d3",
+            "textbox_spec": "**Suburb** and **Region / council** are linked \u2014 together they drive *every* chart. Pick a council to slice all charts to its suburbs (non-member suburbs grey out in the Suburb box); pick suburbs to focus further. Defaults to a few suburbs \u2014 clear them to see all of Victoria. Counters stay global."
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "7d5344a7",
+            "queries": [
+              {
+                "name": "dashboards/cd735699/datasets/7a721646_suburb_name",
+                "query": {
+                  "datasetName": "7a721646",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/d411b49b_suburb_name",
+                "query": {
+                  "datasetName": "d411b49b",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/b5088819_suburb_name",
+                "query": {
+                  "datasetName": "b5088819",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/e8c078a0_suburb_name",
+                "query": {
+                  "datasetName": "e8c078a0",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/6bbfae5a_suburb_name",
+                "query": {
+                  "datasetName": "6bbfae5a",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/99faf19a_suburb_name",
+                "query": {
+                  "datasetName": "99faf19a",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/5579cea1_suburb_name",
+                "query": {
+                  "datasetName": "5579cea1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "suburb_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/7a721646_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/d411b49b_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/b5088819_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/e8c078a0_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/6bbfae5a_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/99faf19a_suburb_name"
+                  },
+                  {
+                    "displayName": "suburb_name",
+                    "fieldName": "suburb_name",
+                    "queryName": "dashboards/cd735699/datasets/5579cea1_suburb_name"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Suburb"
+              },
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "Carlton"
+                      },
+                      {
+                        "value": "Brunswick"
+                      },
+                      {
+                        "value": "Box Hill"
+                      },
+                      {
+                        "value": "Fitzroy"
+                      },
+                      {
+                        "value": "Richmond"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "0478f776",
+            "queries": [
+              {
+                "name": "dashboards/cd735699/datasets/7a721646_lga_name",
+                "query": {
+                  "datasetName": "7a721646",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/d411b49b_lga_name",
+                "query": {
+                  "datasetName": "d411b49b",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/b5088819_lga_name",
+                "query": {
+                  "datasetName": "b5088819",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/e8c078a0_lga_name",
+                "query": {
+                  "datasetName": "e8c078a0",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/6bbfae5a_lga_name",
+                "query": {
+                  "datasetName": "6bbfae5a",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/99faf19a_lga_name",
+                "query": {
+                  "datasetName": "99faf19a",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "dashboards/cd735699/datasets/5579cea1_lga_name",
+                "query": {
+                  "datasetName": "5579cea1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "name": "lga_name",
+                      "expression": "`lga_name`"
+                    },
+                    {
+                      "name": "lga_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/7a721646_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/d411b49b_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/b5088819_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/e8c078a0_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/6bbfae5a_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/99faf19a_lga_name"
+                  },
+                  {
+                    "displayName": "lga_name",
+                    "fieldName": "lga_name",
+                    "queryName": "dashboards/cd735699/datasets/5579cea1_lga_name"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Region / council"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "c6696748",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b781d400",
+                  "fields": [
+                    {
+                      "name": "suburbs",
+                      "expression": "COUNT(DISTINCT `sal_code`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "suburbs",
+                  "displayName": "Suburbs profiled"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Suburbs profiled"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "5770bea3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b781d400",
+                  "fields": [
+                    {
+                      "name": "lgas",
+                      "expression": "COUNT(DISTINCT `lga_code`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "lgas",
+                  "displayName": "LGAs"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "LGAs"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "6aea6d34",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b781d400",
+                  "fields": [
+                    {
+                      "name": "census_years",
+                      "expression": "COUNT(DISTINCT `year`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "census_years",
+                  "displayName": "Census years"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Census years"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "08f6dfbd",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "7a721646",
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "population",
+                      "expression": "SUM(`population_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "year",
+                  "displayName": "Census year",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Census year"
+                  }
+                },
+                "y": {
+                  "fieldName": "population",
+                  "displayName": "Population",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Population"
+                  }
+                },
+                "color": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Population growth over time (per suburb)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "32e57ba1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d411b49b",
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "offences",
+                      "expression": "SUM(`offence_count_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "year",
+                  "displayName": "Census year",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Census year"
+                  }
+                },
+                "y": {
+                  "fieldName": "offences",
+                  "displayName": "Total offences",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Total offences"
+                  }
+                },
+                "color": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total crime over time (per suburb)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "2c584b58",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b5088819",
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "year",
+                      "expression": "`year`"
+                    },
+                    {
+                      "name": "median_house_price",
+                      "expression": "SUM(`median_house_price`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "year",
+                  "displayName": "Census year",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Census year"
+                  }
+                },
+                "y": {
+                  "fieldName": "median_house_price",
+                  "displayName": "Median house price ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Median house price ($)"
+                  }
+                },
+                "color": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "House prices over time (per suburb)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "2199b299",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e8c078a0",
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "stops",
+                      "expression": "SUM(`stops`)"
+                    },
+                    {
+                      "name": "mode",
+                      "expression": "`mode`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Suburb"
+                  }
+                },
+                "y": {
+                  "fieldName": "stops",
+                  "displayName": "Transit stops",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Transit stops"
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "color": {
+                  "fieldName": "mode",
+                  "displayName": "Mode",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Train",
+                        "color": "#5B7C99"
+                      },
+                      {
+                        "value": "Tram",
+                        "color": "#7FA88B"
+                      },
+                      {
+                        "value": "Bus",
+                        "color": "#C9A66B"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Public-transport stops by mode"
+              },
+              "mark": {
+                "colors": [
+                  "#5B7C99",
+                  "#7FA88B",
+                  "#C9A66B"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 30,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "a084335e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "6bbfae5a",
+                  "fields": [
+                    {
+                      "name": "govt_school_count",
+                      "expression": "`govt_school_count`"
+                    },
+                    {
+                      "name": "mean_icsea",
+                      "expression": "`mean_icsea`"
+                    },
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "govt_school_count",
+                  "displayName": "Govt schools",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Govt schools"
+                  }
+                },
+                "y": {
+                  "fieldName": "mean_icsea",
+                  "displayName": "Mean ICSEA",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Mean ICSEA"
+                  }
+                },
+                "color": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Public schooling \u2014 government schools vs ICSEA",
+                "showDescription": true,
+                "description": "ICSEA \u2248 socio-educational advantage (1000 = national average; higher = a more advantaged student intake, a proxy for school-performance context). Each point is a suburb (colour = suburb; hover for the name); top-right = more schools and a higher mean ICSEA."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 38,
+            "width": 6,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "17130f85",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "99faf19a",
+                  "fields": [
+                    {
+                      "name": "current_median",
+                      "expression": "`current_median`"
+                    },
+                    {
+                      "name": "cagr_pct",
+                      "expression": "`cagr_pct`"
+                    },
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "current_median",
+                  "displayName": "Current median price ($)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Current median price ($)"
+                  }
+                },
+                "y": {
+                  "fieldName": "cagr_pct",
+                  "displayName": "Annualised growth (CAGR %)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Annualised growth (CAGR %)"
+                  }
+                },
+                "color": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Value for money: current price vs annualised growth",
+                "showDescription": true,
+                "description": "Bottom-left = cheap today with strong annualised growth. Each point is a suburb (colour = suburb; hover any point for the name)."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 47,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "b8a642d5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5579cea1",
+                  "fields": [
+                    {
+                      "name": "suburb_name",
+                      "expression": "`suburb_name`"
+                    },
+                    {
+                      "name": "score",
+                      "expression": "SUM(`score`)"
+                    },
+                    {
+                      "name": "factor",
+                      "expression": "`factor`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "suburb_name",
+                  "displayName": "Suburb",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "title": "Suburb"
+                  }
+                },
+                "y": {
+                  "fieldName": "score",
+                  "displayName": "All-round score (0-100)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "All-round score (0-100)"
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "color": {
+                  "fieldName": "factor",
+                  "displayName": "Factor",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Safety (low crime)",
+                        "color": "#7FA88B"
+                      },
+                      {
+                        "value": "Schools (ICSEA)",
+                        "color": "#6E8CA0"
+                      },
+                      {
+                        "value": "Transit",
+                        "color": "#9CC0C7"
+                      },
+                      {
+                        "value": "Affordability",
+                        "color": "#C9A66B"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Best all-round value (selected suburbs)",
+                "showDescription": true,
+                "description": "Top 20 suburbs across all of Victoria. Each scores 0\u201325 on four equally-weighted, min\u2013max-normalised latest-year factors \u2014 low crime, school ICSEA, transit connectivity, affordability \u2014 stacked to a 0\u2013100 total, so the segments add up to the bar height."
+              },
+              "mark": {
+                "colors": [
+                  "#7FA88B",
+                  "#6E8CA0",
+                  "#9CC0C7",
+                  "#C9A66B"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 55,
+            "width": 6,
+            "height": 9
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -2,3 +2,9 @@ entity: transport
 rules:
   - { name: sal_code_not_null, type: not_null, column: sal_code, severity: FATAL }
   - { name: stations_non_negative, type: value_range, column: train_station_count, min: 0, max: 50, severity: WARN }
+  - { name: train_freq_bounded, type: value_range, column: train_freq_peak, min: 0, max: 60, severity: WARN }
+  - { name: tram_freq_bounded,  type: value_range, column: tram_freq_peak,  min: 0, max: 60, severity: WARN }
+  - { name: bus_freq_bounded,   type: value_range, column: bus_freq_peak,   min: 0, max: 60, severity: WARN }
+  - { name: train_coverage_unit, type: value_range, column: train_coverage, min: 0, max: 1, severity: WARN }
+  - { name: tram_coverage_unit,  type: value_range, column: tram_coverage,  min: 0, max: 1, severity: WARN }
+  - { name: bus_coverage_unit,   type: value_range, column: bus_coverage,   min: 0, max: 1, severity: WARN }

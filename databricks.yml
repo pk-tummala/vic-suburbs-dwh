@@ -20,6 +20,13 @@ variables:
   warehouse_size:
     description: Serverless SQL warehouse size for reporting
     default: 2X-Small
+  warehouse_id:
+    description: >-
+      SQL warehouse that runs the AI/BI dashboard queries. Resolved by NAME at deploy time
+      (no hardcoded id) — bootstrap creates 'vic_suburbs_<env>_wh'. Overridden per target below
+      to match the env-specific warehouse name.
+    lookup:
+      warehouse: vic_suburbs_dev_wh
 
 # The workspace HOST is intentionally not set here. The Databricks CLI resolves it from your
 # profile in ~/.databrickscfg (or the DATABRICKS_HOST/DATABRICKS_TOKEN env vars), so this
@@ -36,6 +43,9 @@ targets:
     variables:
       catalog: vic_suburbs_qa
       warehouse_size: Small
+      warehouse_id:
+        lookup:
+          warehouse: vic_suburbs_qa_wh
 
   prod:
     mode: production
@@ -45,3 +55,6 @@ targets:
       catalog: vic_suburbs_prod
       warehouse_size: Medium
       notification_email: oncall@example.com
+      warehouse_id:
+        lookup:
+          warehouse: vic_suburbs_prod_wh

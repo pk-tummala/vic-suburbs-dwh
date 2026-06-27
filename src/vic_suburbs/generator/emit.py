@@ -1,14 +1,14 @@
-"""Phase 2 of the synthetic universe: emit landing files (repeatable).
+"""Phase 2 of the synthetic universe: emit incremental landing batches (repeatable).
 
 Reads the SQLite universe built by ``seed.py`` and writes per-entity CSV files into the
 landing directory, stamped with one ``batch_id``, ``source_system = SYNTHETIC`` and a
 per-row ``effective_ts``. These are exactly the files Auto Loader ingests into Bronze.
 
-Modes:
-  history  emit the full back-cast for every entity (first load / backfill)
-  update   apply mutations so SCD2/CDC has changes to capture (new suburb_ref versions,
+``seed`` writes the full 50-year baseline; these modes layer changes on top of it:
+  new      the next period (max + 1) for every measure entity — pure inserts
+  update   mutations so SCD2/CDC has changes to capture (new suburb_ref versions,
            price shocks on recent property rows)
-  mixed    history + a small set of updates (the realistic default)
+  mixed    new + update together (the realistic default)
 
 Run:  python -m vic_suburbs.generator.emit --mode mixed --landing .local/landing
 """
@@ -58,7 +58,9 @@ def _write(
     return path
 
 
-def emit_history(con, landing: Path, batch_id: str) -> list[Path]:
+def emit_full(con, landing: Path, batch_id: str) -> list[Path]:
+    """Write the full 50-year baseline: every period of every measure entity plus the initial
+    reference versions. Called by ``seed`` as the one-time initial landing load."""
     written = []
     for entity, table in MEASURE_TABLES.items():
         df = pd.read_sql(f"SELECT * FROM {table}", con)
@@ -150,8 +152,6 @@ def emit(mode: str, landing: str, db_path: str, mutation_config: str) -> list[Pa
     con = sqlite3.connect(db_path)
     try:
         written: list[Path] = []
-        if mode in ("history", "mixed"):
-            written += emit_history(con, landing_path, batch_id)
         if mode in ("new", "mixed"):
             written += emit_new(con, landing_path, batch_id)
         if mode in ("update", "mixed"):
@@ -168,7 +168,7 @@ def emit(mode: str, landing: str, db_path: str, mutation_config: str) -> list[Pa
 
 def main() -> None:  # pragma: no cover
     ap = argparse.ArgumentParser(description="Emit synthetic landing files.")
-    ap.add_argument("--mode", choices=["history", "new", "update", "mixed"], default="mixed")
+    ap.add_argument("--mode", choices=["new", "update", "mixed"], default="mixed")
     ap.add_argument("--landing", default=".local/landing")
     ap.add_argument("--db", default=DEFAULT_DB)
     ap.add_argument("--mutation-config", default="config/synthetic/mutation_rules.yaml")

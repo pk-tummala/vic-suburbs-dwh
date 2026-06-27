@@ -1,8 +1,6 @@
 entity: education
 columns:
   - { name: sal_code, type: string }
-  - { name: suburb, type: string }
-  - { name: postcode, type: string }
   - { name: period, type: int }
   - { name: govt_school_count, type: int }
   - { name: mean_icsea, type: double }

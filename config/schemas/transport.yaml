@@ -1,9 +1,13 @@
 entity: transport
 columns:
   - { name: sal_code, type: string }
-  - { name: suburb, type: string }
-  - { name: postcode, type: string }
   - { name: period, type: int }
   - { name: train_station_count, type: int }
   - { name: tram_stop_count, type: int }
   - { name: bus_stop_count, type: int }
+  - { name: train_freq_peak, type: int }     # peak-hour services per hour (synthetic)
+  - { name: tram_freq_peak, type: int }
+  - { name: bus_freq_peak, type: int }
+  - { name: train_coverage, type: double }    # share of suburb within walking distance of a stop
+  - { name: tram_coverage, type: double }
+  - { name: bus_coverage, type: double }

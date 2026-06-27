@@ -1,4 +1,4 @@
-"""Lineage helpers shared by extractors, the generator, and the pipeline."""
+"""Lineage helpers shared by the generator and the pipeline."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 # Lineage columns carried from landing through to Gold facts.
 LINEAGE_COLUMNS = ("source_system", "batch_id", "ingested_at")
 
-VALID_SOURCE_SYSTEMS = {"ABS", "DATAVIC", "ACARA", "SYNTHETIC"}
+VALID_SOURCE_SYSTEMS = {"SYNTHETIC"}
 
 
 def new_batch_id() -> str:
-    """Mint a fresh batch id (UUID4) for one extraction run."""
+    """Mint a fresh batch id (UUID4) for one generation batch."""
     return str(uuid.uuid4())
 
 

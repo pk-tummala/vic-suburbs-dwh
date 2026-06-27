@@ -1,10 +1,5 @@
+# Synthetic source registry: the generator writes these landing files and Bronze Auto Loader
+# reads them from landing_path.
 entity: property
-source_system: DATAVIC
-connector: ckan
-ckan:
-  base_url: https://discover.data.vic.gov.au
-  resource_id: REPLACE_WITH_RESOURCE_ID   # pinned at build time from the portal
-  page_size: 1000
+source_system: SYNTHETIC
 landing_path: property/
-effective_field: contract_quarter         # -> effective_ts
-key_fields: [suburb, postcode]            # -> crosswalk to sal_code

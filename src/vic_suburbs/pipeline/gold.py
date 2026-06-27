@@ -1,4 +1,4 @@
-"""Gold builders: conformed SCD2 dimensions with stable surrogate keys, dim_year, and one fact
+"""Gold builders: SCD2 dimensions with stable surrogate keys, dim_year, and one fact
 per measure entity. Tables publish to ``03_gold``; same-pipeline reads use fully-qualified names.
 
 APPLY CHANGES targets carry ``__START_AT`` / ``__END_AT`` but no surrogate key, so each dimension
@@ -43,7 +43,7 @@ def define_dim_scd2(spark, entity: str, catalog: str):
 
     @dlt.table(
         name=fqn(catalog, "gold", dim_name),
-        comment=f"Gold: conformed SCD2 dimension {dim_name} (with surrogate key {sk_col}).",
+        comment=f"Gold: SCD2 dimension {dim_name} (with surrogate key {sk_col}).",
         table_properties={"quality": "gold"},
     )
     def _dim():
@@ -93,7 +93,7 @@ def _resolve_suburb_sk(df, dim_suburb):
 
 
 def define_fact(spark, entity: str, catalog: str):
-    """Build fact_suburb_<entity> at grain suburb x year, with conformed SKs and lineage."""
+    """Build fact_suburb_<entity> at grain suburb x year, with surrogate keys and lineage."""
 
     @dlt.table(
         name=fqn(catalog, "gold", f"fact_suburb_{entity}"),
