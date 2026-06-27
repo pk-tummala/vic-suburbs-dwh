@@ -180,8 +180,9 @@ relative to itself, so it works from any directory.
 docs/
 ├── architecture/
 │   ├── 01-high-level-architecture.svg     # system view (in README)
-│   └── 02-operational-data-flow.svg       # step-by-step flow (in README)
-│   # 03-dashboard-showcase.svg added after the first dashboards are generated
+│   ├── 02-operational-data-flow.svg       # step-by-step flow (in README)
+│   ├── 03-dashboard-showcase.png          # the six AI/BI charts + leaderboard (in README)
+│   └── 04-make-command-wiring.svg         # how every make target wires to code (in README)
 ├── data-model/
 │   ├── data-model.md                      # fact constellation, grain, SCD2 rationale
 │   ├── data-dictionary.md                 # column-by-column dictionary of every layer
@@ -217,4 +218,5 @@ docs/
 | Change DQ rules | `config/dq_rules/<entity>.yaml` (grammar: `docs/design/05`) |
 | Set up locally | `docs/runbooks/intellij-wsl-setup.md` |
 | Deploy / tear down | `docs/runbooks/deployment-guide.md` |
+| See how the make commands wire to code | `docs/architecture/04-make-command-wiring.svg` (in README → Quickstart) |
 | Regenerate the ER diagram | `make er-diagram` (`tools/build-er-diagram.py`) |

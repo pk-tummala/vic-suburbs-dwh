@@ -276,6 +276,14 @@ The run is logged as `NO_OP` with zero new rows — proving the pipeline is idem
 | Run | `make run ENV=dev` | `databricks bundle run vic_suburbs_job -t dev` |
 | **Destroy env** | `make destroy ENV=dev` | `./deployment/destroy.sh --env dev` |
 
+### How the commands wire to the code
+
+The table above lists the seven `make` targets; this schematic shows what each one actually *does*. It traces which file every command fires, what that file does, and how the artefacts chain together — from the local generator on your laptop, through the upload into the landing Volume, along the medallion, and out to the dashboard — so the whole project reads as one wired-up engine on a single page.
+
+<div align="center">
+  <img src="docs/architecture/04-make-command-wiring.svg" alt="Make commands → code wiring: which file each command invokes, what it does, and how every artefact connects end to end" width="100%">
+</div>
+
 ---
 
 ## 🚢 Deployment
