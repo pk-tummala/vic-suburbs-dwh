@@ -4,9 +4,10 @@
 # (Unity Catalog + serverless enabled) and an authenticated Databricks CLI.
 #
 # It performs everything that would otherwise be manual:
-#   1. creates the five RBAC groups (idempotent)
-#   2. deploys the bundle (pipeline, jobs, bootstrap job)
-#   3. runs the UC bootstrap job  -> catalog, schemas, Volume, and grants
+#   1. creates the five account RBAC groups (idempotent)
+#   2. ensures the project SQL warehouse and the catalog exist (idempotent)
+#   3. deploys the bundle (pipeline, jobs, bootstrap job, dashboard)
+#   4. runs the UC bootstrap job  -> schemas, Volume, and grants
 #
 # After this, `make run ENV=<env>` (or `databricks bundle run vic_suburbs_job -t <env>`)
 # is all that's needed to load data.
@@ -101,32 +102,35 @@ else
   echo "   --skip-groups set; assuming groups are provisioned by your identity provider"
 fi
 
-echo "→ [2/4] Ensuring catalog ${CATALOG} exists..."
+echo "→ [2/4] Ensuring SQL warehouse ${WH_NAME} and catalog ${CATALOG} exist..."
+# The bundle resolves its `warehouse_id` variable by NAME (lookup: ${WH_NAME}) at deploy time,
+# so the warehouse must exist BEFORE `bundle deploy` — independently of whether the catalog
+# already exists. Ensure it first (idempotent), then reuse it for CREATE CATALOG below.
+WID="$(find_warehouse_id)"
+if [[ -z "${WID}" ]]; then
+  echo "   creating serverless SQL warehouse ${WH_NAME} (2X-Small, auto-stops after 10 idle min)..."
+  WID="$(databricks warehouses create --json "$(jq -n --arg n "${WH_NAME}" '{
+      name: $n,
+      cluster_size: "2X-Small",
+      warehouse_type: "PRO",
+      enable_serverless_compute: true,
+      auto_stop_mins: 10,
+      max_num_clusters: 1
+    }')" -o json | jq -r '.id // empty')"
+  [[ -z "${WID}" ]] && WID="$(find_warehouse_id)"   # fall back to lookup by name
+  [[ -z "${WID}" ]] && { echo "ERROR: could not find or create SQL warehouse ${WH_NAME}." >&2; exit 1; }
+  echo "   created SQL warehouse ${WH_NAME} (${WID})"
+else
+  echo "   SQL warehouse ${WH_NAME} already exists (${WID})"
+fi
+
 # 'databricks catalogs create' can't make a catalog on a Default-Storage workspace (CLI issue
-# #4513), but 'CREATE CATALOG' via SQL can. So create it through the Statement Execution API
+# #4513), but 'CREATE CATALOG' via SQL can — run it through the Statement Execution API
 # (tools/dbsql.sh) BEFORE deploy, since the DLT pipeline is validated against its catalog at
-# deploy time. Skipped entirely if the catalog already exists (no warehouse needed on re-runs).
+# deploy time.
 if databricks catalogs get "${CATALOG}" >/dev/null 2>&1; then
   echo "   catalog ${CATALOG} already exists"
 else
-  # SQL needs a warehouse. Reuse our project warehouse if present, else create a small
-  # serverless one (auto-stops after 10 idle min; removed by deployment/destroy.sh).
-  WID="$(find_warehouse_id)"
-  if [[ -z "${WID}" ]]; then
-    echo "   creating serverless SQL warehouse ${WH_NAME} (2X-Small)..."
-    WID="$(databricks warehouses create --json "$(jq -n --arg n "${WH_NAME}" '{
-        name: $n,
-        cluster_size: "2X-Small",
-        warehouse_type: "PRO",
-        enable_serverless_compute: true,
-        auto_stop_mins: 10,
-        max_num_clusters: 1
-      }')" -o json | jq -r '.id // empty')"
-    [[ -z "${WID}" ]] && WID="$(find_warehouse_id)"   # fall back to lookup by name
-  fi
-  [[ -z "${WID}" ]] && { echo "ERROR: could not find or create a SQL warehouse." >&2; exit 1; }
-  echo "   using SQL warehouse ${WH_NAME} (${WID})"
-
   echo "   creating catalog via SQL (Default Storage compatible)..."
   bash "${SCRIPT_DIR}/../tools/dbsql.sh" --warehouse-id "${WID}" \
     "CREATE CATALOG IF NOT EXISTS ${CATALOG} COMMENT 'Victoria Suburbs Profiler'" >/dev/null
