@@ -233,8 +233,10 @@ A browser opens; sign in. The CLI then:
   (note: **no token in this file** — OAuth keeps the token elsewhere), and
 - caches an **access token + refresh token** at `~/.databricks/token-cache.json`.
 
-Name the profile when prompted (e.g. `vic-dev`) and make it the default so commands don't need
-`-p`:
+Name the profile when prompted **`vic-dev`** and make it the default so commands don't need
+`-p`. Don't name it `vic-account` — that name is reserved for the separate account-level login
+`bootstrap.sh` creates; reusing it here overwrites that account profile with workspace
+credentials and makes `make bootstrap` fail at the account RBAC-groups step:
 
 ```ini
 ; ~/.databrickscfg

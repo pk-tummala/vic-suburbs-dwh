@@ -88,7 +88,7 @@ The catalog is created with `CREATE CATALOG` **SQL** executed through a serverle
 
 Access is granted to **account-level groups**, never individuals, and each role gets the minimum it needs.
 
-Unity Catalog grants only resolve **account-level** principals — workspace-local groups produce `PRINCIPAL_DOES_NOT_EXIST`. The five role groups are therefore created through the **account** API (not workspace-local `groups create`). To do this the bootstrap performs a one-time **account-level login** (`databricks auth login --account-id <ID>`, cached as the `vic-account` CLI profile); subsequent runs reuse the profile. Creating account groups requires **account-admin** rights — on a solo account you are the admin. Workspace OAuth (the dev login) is sufficient for everything *except* this group-creation step.
+Unity Catalog grants only resolve **account-level** principals — workspace-local groups produce `PRINCIPAL_DOES_NOT_EXIST`. The five role groups are therefore created through the **account** API (not workspace-local `groups create`). To do this the bootstrap performs a one-time **account-level login** (`databricks auth login --account-id <ID>`, cached as the `vic-account` CLI profile); subsequent runs reuse it after verifying it can still reach the account API, re-authenticating automatically if it can't (for example, the profile expired or was created against a workspace host). Creating account groups requires **account-admin** rights — on a solo account you are the admin. Workspace OAuth (the dev login) is sufficient for everything *except* this group-creation step.
 
 | Role (group) | Identity | Grants |
 |---|---|---|

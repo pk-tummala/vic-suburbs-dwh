@@ -48,14 +48,16 @@ ACCOUNT_HOST="${DATABRICKS_ACCOUNT_HOST:-https://accounts.cloud.databricks.com}"
 ACCOUNT_PROFILE="${DATABRICKS_ACCOUNT_PROFILE:-vic-account}"
 acct() { databricks account "$@" -p "${ACCOUNT_PROFILE}"; }
 
-# Idempotently ensure an account-level CLI profile exists. If it's already in the config file we
-# reuse it; otherwise we explain why it's needed, collect the Account ID, and run a one-time
-# OAuth account login that writes the profile to the config file.
-ensure_account_auth() {
-  if [[ -f "${DATABRICKS_CFG}" ]] && grep -q "^\[${ACCOUNT_PROFILE}\]$" "${DATABRICKS_CFG}"; then
-    echo "   account profile '${ACCOUNT_PROFILE}' already configured — reusing it"
-    return 0
-  fi
+# True only if the profile can actually reach the ACCOUNT API. This catches all three ways it can
+# be wrong: missing, expired, or — the common trap — a profile with this name created against a
+# WORKSPACE host (e.g. by `make auth`), which looks configured but can't make account calls.
+# Testing the call is authoritative; a mere [section] in the config file is not.
+account_profile_works() {
+  databricks account groups list -p "${ACCOUNT_PROFILE}" -o json >/dev/null 2>&1
+}
+
+# Run the one-time OAuth account login that writes (or overwrites) the account profile.
+account_login() {
   echo ""
   echo "   One-time account login required."
   echo "   Why: Unity Catalog grants only recognise ACCOUNT-level groups, and creating those"
@@ -68,7 +70,7 @@ ensure_account_auth() {
     if [[ -t 0 ]]; then
       read -r -p "   Enter your Databricks Account ID: " acct_id || true
     else
-      echo "ERROR: no account profile and no interactive terminal to prompt." >&2
+      echo "ERROR: no working account profile and no interactive terminal to prompt." >&2
       echo "  Set DATABRICKS_ACCOUNT_ID=<id> and rerun, or create it once with:" >&2
       echo "  databricks auth login --host ${ACCOUNT_HOST} --account-id <ID> --profile ${ACCOUNT_PROFILE}" >&2
       exit 1
@@ -79,14 +81,48 @@ ensure_account_auth() {
   databricks auth login --host "${ACCOUNT_HOST}" --account-id "${acct_id}" --profile "${ACCOUNT_PROFILE}"
 }
 
+# Remove one [profile] section from the CLI config so a fresh `auth login` can recreate it. The
+# CLI refuses to overwrite a profile whose saved host differs from --host, so a profile created
+# against the wrong host (e.g. a workspace login named 'vic-account') must be cleared first.
+# Backs the file up to <cfg>.bak before rewriting.
+remove_cfg_profile() {
+  local name="$1"
+  [[ -f "${DATABRICKS_CFG}" ]] || return 0
+  cp "${DATABRICKS_CFG}" "${DATABRICKS_CFG}.bak"
+  awk -v hdr="[${name}]" '
+    $0 == hdr { skip = 1; next }
+    skip && /^\[/ { skip = 0 }
+    !skip { print }
+  ' "${DATABRICKS_CFG}.bak" > "${DATABRICKS_CFG}"
+  echo "   cleared the stale '${name}' entry (backup saved to ${DATABRICKS_CFG}.bak)"
+}
+
+# Guarantee a WORKING account profile or exit with a precise message. We validate by calling the
+# account API (not by trusting that a [profile] section merely exists), and self-heal by
+# re-authenticating when a profile with this name exists but can't reach the account.
+ensure_account_auth() {
+  if account_profile_works; then
+    echo "   account profile '${ACCOUNT_PROFILE}' is authenticated — reusing it"
+    return 0
+  fi
+  if [[ -f "${DATABRICKS_CFG}" ]] && grep -q "^\[${ACCOUNT_PROFILE}\]$" "${DATABRICKS_CFG}"; then
+    echo "   profile '${ACCOUNT_PROFILE}' exists but can't reach the account API." >&2
+    echo "   Most often it was created against a WORKSPACE host (e.g. via 'make auth') or its token" >&2
+    echo "   expired; it must be an ACCOUNT login against ${ACCOUNT_HOST}. Re-authenticating it now..." >&2
+    remove_cfg_profile "${ACCOUNT_PROFILE}"   # clear the stale entry so `auth login` can recreate it
+  fi
+  account_login
+  if ! account_profile_works; then
+    echo "ERROR: account profile '${ACCOUNT_PROFILE}' still can't reach the account API after login." >&2
+    echo "  Check you logged in against ${ACCOUNT_HOST} with a valid Account ID and are an account" >&2
+    echo "  admin. If your IdP manages the RBAC groups instead, re-run with --skip-groups." >&2
+    exit 1
+  fi
+}
+
 echo "→ [1/4] Ensuring account-level RBAC groups exist..."
 if [[ "${SKIP_GROUPS}" != "true" ]]; then
   ensure_account_auth
-  if ! acct groups list -o json >/dev/null 2>&1; then
-    echo "ERROR: account profile '${ACCOUNT_PROFILE}' isn't working (login failed or expired)." >&2
-    echo "  Re-run: databricks auth login --host ${ACCOUNT_HOST} --account-id <ID> --profile ${ACCOUNT_PROFILE}" >&2
-    exit 1
-  fi
   acct_groups_json="$(acct groups list -o json 2>/dev/null || echo '[]')"
   for g in "${RBAC_GROUPS[@]}"; do
     gid="$(echo "${acct_groups_json}" \

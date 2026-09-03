@@ -233,7 +233,10 @@ pytest tests/integration     #        local-Spark smoke test (auto-skips if no S
 # 4. Authenticate the CLI to your workspace (one-time, OAuth)
 make auth HOST=https://<your-workspace>.cloud.databricks.com
                              # ── or: databricks auth login --host https://<your-workspace>...
-                             #    Bootstrap (step 5) adds a one-time ACCOUNT login for the
+                             #    At the profile-name prompt use  vic-dev  (and make it default).
+                             #    Do NOT name it  vic-account  — that name is reserved for the
+                             #    account login bootstrap creates; reusing it here breaks step 5.
+                             #    Bootstrap (step 5) adds that one-time ACCOUNT login for the
                              #    account-level RBAC groups — be an account admin, ID ready.
 
 # 5. Bootstrap the environment — account groups + catalog + schemas + Volume + grants (automated)

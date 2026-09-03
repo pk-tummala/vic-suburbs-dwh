@@ -76,7 +76,7 @@ existing one and rebuilds it from scratch (use this after a schema change).
 ```bash
 # one-time local setup
 make install                                                   # Python deps + the package (editable)
-make auth HOST=https://<your-workspace>.cloud.databricks.com   # OAuth login (one-time)
+make auth HOST=https://<your-workspace>.cloud.databricks.com   # OAuth login — name the profile vic-dev (NOT vic-account)
 
 # stand up the environment, load data, build, check
 make bootstrap ENV=dev      # groups + catalog + schemas + Volume + grants + bundle deploy
@@ -123,8 +123,11 @@ make bootstrap ENV=dev
 **First run only:** because the RBAC groups are account-level, the script does a one-time account
 login. It explains why, then prompts for your **Account ID** (find it at
 `https://accounts.cloud.databricks.com` → top-right user menu) and runs `databricks auth login`
-against the account, saving a CLI profile (`vic-account`). This is **idempotent** — once that
-profile is in `~/.databrickscfg`, later runs skip it. You can pre-supply the ID non-interactively
+against the account, saving a CLI profile (`vic-account`). This is **idempotent** — later runs
+reuse it once they confirm it still reaches the account API, and if that profile is missing,
+expired, or was accidentally created against a *workspace* host (e.g. by naming a `make auth`
+login `vic-account`), bootstrap detects it and re-runs this account login automatically. Name
+your day-to-day workspace login `vic-dev`, not `vic-account`. You can pre-supply the ID non-interactively
 with `DATABRICKS_ACCOUNT_ID=<id>`, override the profile name with `DATABRICKS_ACCOUNT_PROFILE`, or
 skip the groups entirely with `--skip-groups`.
 
@@ -324,7 +327,7 @@ databricks api post /api/2.0/sql/statements --json "{
 | Bootstrap grants skipped: `PRINCIPAL_DOES_NOT_EXIST` | The groups aren't account-level. Make sure the account profile is set up — re-run `make bootstrap`, which creates **account** groups (workspace-local `groups create` won't work for UC). |
 | `catalogs create` fails: *Default Storage enabled / metastore storage root URL does not exist* | Expected on Default-Storage workspaces — the script creates the catalog via `CREATE CATALOG` SQL instead. Just ensure serverless SQL can run. |
 | `No SQL warehouse found` during bootstrap | The script now auto-provisions `vic_suburbs_<env>_wh`; this only appears if serverless SQL can't be created — enable serverless, or pre-create a warehouse and set `DATABRICKS_WAREHOUSE_ID`. |
-| `cannot reach the account API` during bootstrap | Account auth missing. Re-run and enter your Account ID at the prompt, set `DATABRICKS_ACCOUNT_ID`, or pass `--skip-groups`. |
+| `cannot reach the account API` during bootstrap | Account auth is missing/expired, or the `vic-account` profile points at a *workspace* host (e.g. a `make auth` login was named `vic-account`). Bootstrap now detects this, clears the stale entry, and re-runs the account login for you. To do it by hand: delete the `[vic-account]` section from `~/.databrickscfg` (the CLI won't overwrite a profile whose host differs), then `databricks auth login --host https://accounts.cloud.databricks.com --account-id <ID> --profile vic-account` — or pass `--skip-groups`. |
 | Pipeline run does nothing (`NO_OP`) unexpectedly | No new files in the landing Volume — emit a batch first (`make emit` + `make upload`). |
 | `account group already exists` during bootstrap | Expected and harmless; the script skips it. Use `--skip-groups` if your IdP manages groups. |
 | `databricks catalogs delete` fails: catalog not empty | Re-run with `--force` (the script already passes it); ensure no other workspace holds the catalog. |
